@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using WabiSabiMonitor.Utils.Extensions;
@@ -29,6 +30,7 @@ public static class EnvironmentHelpers
 			if (!string.IsNullOrEmpty(home))
 			{
 				directory = Path.Combine(home, "." + appName.ToLowerInvariant());
+				Logger.LogInfo($"Using HOME environment variable for initializing application data at `{directory}`.");
 			}
 			else
 			{
@@ -41,6 +43,7 @@ public static class EnvironmentHelpers
 			if (!string.IsNullOrEmpty(localAppData))
 			{
 				directory = Path.Combine(localAppData, appName);
+				Logger.LogInfo($"Using APPDATA environment variable for initializing application data at `{directory}`.");
 			}
 			else
 			{
@@ -61,7 +64,57 @@ public static class EnvironmentHelpers
 		return directory;
 	}
 
+	/// <summary>
+	/// Gets Bitcoin <c>datadir</c> parameter from:
+	/// <list type="bullet">
+	/// <item><c>APPDATA</c> environment variable on Windows, and</item>
+	/// <item><c>HOME</c> environment variable on other platforms.</item>
+	/// </list>
+	/// </summary>
+	/// <returns><c>datadir</c> or empty string.</returns>
+	/// <seealso href="https://en.bitcoin.it/wiki/Data_directory"/>
+	public static string GetDefaultBitcoinCoreDataDirOrEmptyString()
+	{
+		string directory = "";
+
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+		{
+			var localAppData = Environment.GetEnvironmentVariable("APPDATA");
+			if (!string.IsNullOrEmpty(localAppData))
+			{
+				directory = Path.Combine(localAppData, "Bitcoin");
+			}
+			else
+			{
+				Logger.LogDebug($"Could not find suitable default {Constants.BuiltinBitcoinNodeName} datadir.");
+			}
+		}
+		else
+		{
+			var home = Environment.GetEnvironmentVariable("HOME");
+			if (!string.IsNullOrEmpty(home))
+			{
+				directory = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+					? Path.Combine(home, "Library", "Application Support", "Bitcoin")
+					: Path.Combine(home, ".bitcoin"); // Linux
+			}
+			else
+			{
+				Logger.LogDebug($"Could not find suitable default {Constants.BuiltinBitcoinNodeName} datadir.");
+			}
+		}
+
+		return directory;
+	}
+
 	// This method removes the path and file extension.
+	//
+	// Given Wasabi releases are currently built using Windows, the generated assemblies contain
+	// the hard coded "C:\Users\User\Desktop\WalletWasabi\.......\FileName.cs" string because that
+	// is the real path of the file, it doesn't matter what OS was targeted.
+	// In Windows and Linux that string is a valid path and that means Path.GetFileNameWithoutExtension
+	// can extract the file name but in the case of OSX the same string is not a valid path so, it assumes
+	// the whole string is the file name.
 	public static string ExtractFileName(string callerFilePath)
 	{
 		var lastSeparatorIndex = callerFilePath.LastIndexOf("\\");
@@ -170,5 +223,19 @@ public static class EnvironmentHelpers
 		}
 
 		return fullBaseDirectory;
+	}
+
+	public static string GetExecutablePath()
+	{
+		var fullBaseDir = GetFullBaseDirectory();
+		var wassabeeFileName = Path.Combine(fullBaseDir, Constants.ExecutableName);
+		wassabeeFileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"{wassabeeFileName}.exe" : $"{wassabeeFileName}";
+		if (File.Exists(wassabeeFileName))
+		{
+			return wassabeeFileName;
+		}
+		var assemblyName = Assembly.GetEntryAssembly()?.GetName().Name ?? throw new NullReferenceException("Assembly or Assembly's Name was null.");
+		var fluentExecutable = Path.Combine(fullBaseDir, assemblyName);
+		return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"{fluentExecutable}.exe" : $"{fluentExecutable}";
 	}
 }

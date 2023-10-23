@@ -2,6 +2,7 @@ using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WabiSabiMonitor.Utils.Extensions;
+using WabiSabiMonitor.Utils.JsonConverters;
 
 namespace WabiSabiMonitor.Utils.Rpc;
 
@@ -19,6 +20,9 @@ public class JsonRpcRequestHandler<TService>
 		ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
 		Converters = new JsonConverter[]
 		{
+			new Uint256JsonConverter(),
+			new OutPointAsTxoRefJsonConverter(),
+			new BitcoinAddressJsonConverter()
 		}
 	};
 
@@ -101,6 +105,11 @@ public class JsonRpcRequestHandler<TService>
 					var parameter = methodParameters[i];
 					if (!jObj.ContainsKey(parameter.name))
 					{
+						if (parameter.isOptional)
+						{
+							parameters.Add(parameter.defaultValue);
+							continue;
+						}
 						return Error(
 							JsonRpcErrorCodes.InvalidParams,
 							$"A value for the '{parameter.name}' is missing.",

@@ -3,6 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace WabiSabiMonitor.Utils.Microservices;
 
+/// <summary>
+/// Factory for <see cref="ProcessStartInfo"/> with pre-defined properties as needed in Wasabi Wallet.
+/// </summary>
 public class ProcessStartInfoFactory
 {
 	/// <summary>

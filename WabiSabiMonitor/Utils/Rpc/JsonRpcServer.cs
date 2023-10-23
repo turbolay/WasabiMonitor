@@ -2,14 +2,16 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Hosting;
 using WabiSabiMonitor.Utils.Logging;
+using WabiSabiMonitor.Utils.Services.Terminate;
 
 namespace WabiSabiMonitor.Utils.Rpc;
 
 public class JsonRpcServer : BackgroundService
 {
-	public JsonRpcServer(IJsonRpcService service, JsonRpcServerConfiguration config)
+	public JsonRpcServer(IJsonRpcService service, JsonRpcServerConfiguration config, TerminateService terminateService)
 	{
 		Config = config;
+		TerminateService = terminateService;
 		RequestHandler = new JsonRpcRequestHandler<IJsonRpcService>(service);
 
 		Listener = new HttpListener();
@@ -20,6 +22,8 @@ public class JsonRpcServer : BackgroundService
 			Listener.Prefixes.Add(prefix);
 		}
 	}
+
+	private TerminateService TerminateService { get; }
 	private HttpListener Listener { get; }
 	private JsonRpcRequestHandler<IJsonRpcService> RequestHandler { get; }
 	private JsonRpcServerConfiguration Config { get; }
@@ -124,7 +128,8 @@ public class JsonRpcServer : BackgroundService
 
 		if (stopRpcRequestReceived)
 		{
-			Logger.LogError($"User sent '{IJsonRpcService.StopRpcCommand}' command. Terminating application.");
+			Logger.LogDebug($"User sent '{IJsonRpcService.StopRpcCommand}' command. Terminating application.");
+			TerminateService.SignalTerminate();
 		}
 	}
 
