@@ -10,9 +10,9 @@ public static class BetterHumanMonitor
 {
     public static BetterHumanMonitorModel GetApiResponse(DateTimeOffset? start = null, DateTimeOffset? end = null)
     {
-        
-        var result = new BetterHumanMonitorModel(new(), new());
-        
+
+        var result = BetterHumanMonitorModel.Empty();
+
         BetterHumanMonitorRound CreateBetterHumanMonitorRound(RoundState round)
         {
             var blame = Analyzer.GetBlameOf(round);
@@ -30,11 +30,11 @@ public static class BetterHumanMonitor
         }
 
         var allRoundsInInterval = Analyzer.GetRoundsInInterval(start, end);
-        
+
         var currentRounds = Analyzer.GetCurrentRounds();
         foreach (var current in currentRounds)
         {
-            
+
             result.CurrentRounds.Add(CreateBetterHumanMonitorRound(current));
         }
 
@@ -43,12 +43,12 @@ public static class BetterHumanMonitor
 
         foreach (var lastPeriodRound in lastPeriodRounds)
         {
-            
+
             result.LastPeriod.Add(CreateBetterHumanMonitorRound(lastPeriodRound));
         }
 
-        result.Analysis = Analyzer.Analyze(lastPeriodRounds.ToList());
-        
+        result.Analysis = Analyzer.AnalyzeRoundStates(lastPeriodRounds.ToList());
+
         return result;
     }
 
@@ -81,7 +81,7 @@ public static class BetterHumanMonitor
             FeeRate? feeRate,
             CoinJoinFeeRateMedian[] currentFeesConditions)
         {
-            
+
             Id = id;
             Blame = blame;
             CurrentPhase = currentPhase;

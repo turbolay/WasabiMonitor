@@ -16,23 +16,21 @@ public class Processor : BackgroundService
         Rounds = savedRounds;
     }
     
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken token)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        while (await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(token) || !token.IsCancellationRequested)
         {
-            var isChannelStillOpened = await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(stoppingToken);
-            if (!isChannelStillOpened)
-            {
-                return;
-            }
+            var data = await Scraper.ToBeProcessedData.Reader.ReadAsync(token);
 
-            var data = await Scraper.ToBeProcessedData.Reader.ReadAsync(stoppingToken);
             foreach (var round in data.Rounds.RoundStates)
             {
                 if (!Rounds.TryGetValue(round.Id, out var oldInstance))
                 {
                     Rounds.Add(round.Id,
-                        new ProcessedRound(data.ScrapedAt, round, data.Rounds.AffiliateInformation,
+                        new ProcessedRound(
+                            data.ScrapedAt, 
+                            round, 
+                            data.Rounds.AffiliateInformation, 
                             data.Rounds.CoinJoinFeeRateMedians));
                     continue;
                 }

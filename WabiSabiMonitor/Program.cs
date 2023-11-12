@@ -1,7 +1,12 @@
 ﻿using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using WabiSabiMonitor.Data;
+using WabiSabiMonitor.Data.Interfaces;
+using WabiSabiMonitor.Db;
 using WabiSabiMonitor.Rpc;
 using WabiSabiMonitor.Utils.Config;
+using WabiSabiMonitor.Utils.Helpers;
 using WabiSabiMonitor.Utils.Logging;
 using WabiSabiMonitor.Utils.Rpc;
 using WabiSabiMonitor.Utils.Services.Terminate;
@@ -16,9 +21,9 @@ namespace WabiSabiMonitor
     {
         public static Config? Config { get; set; }
         public static JsonRpcServer? RpcServer { get; private set; }
-        public static WabiSabiHttpApiClient? WabiSabiApiClient { get; private set; }
-        public static Scraper? RoundStatusScraper { get; private set; }
         public static Processor? DataProcessor { get; private set; }
+        public static IHttpClientFactory? HttpClientFactory {get; set;}
+        public static IServiceCollection Services {get; set;}
 
         private static object LockClosure { get; } = new();
         
@@ -69,6 +74,8 @@ namespace WabiSabiMonitor
             }
         }
         
+        
+        
         private static PersistentConfig LoadOrCreateConfigs()
         {
             Directory.CreateDirectory(Config.DataDir);
@@ -81,49 +88,89 @@ namespace WabiSabiMonitor
 
         private static void CreateHttpClients()
         {
-            var httpClient = new HttpClient();
+            Services = ConfigureServices();
+
+            var clientFactory = Services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>();
+            HttpClientFactory = clientFactory;
+            var httpClient = HttpClientFactory.CreateClient();
+    
             httpClient.BaseAddress = Config!.GetCoordinatorUri();
             WabiSabiApiClient = new WabiSabiHttpApiClient(new ClearnetHttpClient(httpClient));
+            
+            // var httpClient = new HttpClient();
+            // httpClient.BaseAddress = Config!.GetCoordinatorUri();
+            // WabiSabiApiClient = new WabiSabiHttpApiClient(new ClearnetHttpClient(httpClient));
+        }
+        
+        private static IServiceCollection ConfigureServices()
+        {
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddHttpClient();
+            return serviceCollection;
         }
         
         public static async Task Main(string[] args)
         {
+            //moved here
+            var host = CreateHostBuilder(args).Build();
+            var repositoryPath = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
+            
             try
             {
                 HandleClosure();
-                Logger.InitializeDefaults("./logs.txt");
+                var WabiSabiHttpApiClient = host.Services.GetRequiredService<WabiSabiHttpApiClient>();
+                var roundStatusScraper = host.Services.GetRequiredService<Scraper>();   
+                var dataProcessor = host.Services.GetRequiredService<Processor>();
+
+                var repository = new FileProcessedRoundRepository(repositoryPath, dataProcessor);
+
+                await host.RunAsync();
                 
+                Logger.InitializeDefaults("./logs.txt");
+                Logger.LogInfo("Read confi...");
                 Config = new Config(LoadOrCreateConfigs(), Array.Empty<string>());
+                Logger.LogInfo("creating http clients...");
                 CreateHttpClients();
-                RoundStatusScraper = new();
-                await RoundStatusScraper.StartAsync(CancellationTokenSource.Token);
-                await RoundStatusScraper.TriggerAndWaitRoundAsync(CancellationTokenSource.Token);
+                
+                await roundStatusScraper.StartAsync(CancellationTokenSource.Token);
+                await roundStatusScraper.TriggerAndWaitRoundAsync(CancellationTokenSource.Token);
 
                 await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(CancellationTokenSource.Token);
-                
-                DataProcessor = new(Db.Db.ReadFromFileSystem() ?? new());
+
+                var DataProcessor = host.Services.GetRequiredService<Processor>(); 
+                DataProcessor = new(repository.ReadFromFileSystem());
                 await DataProcessor.StartAsync(CancellationTokenSource.Token);
                 
                 await StartRpcServerAsync(CancellationTokenSource.Token);
                 Logger.LogInfo("Initialized.");
                 await Task.Delay(-1, CancellationTokenSource.Token);
             }
-            catch (TaskCanceledException)
+            catch (Exception ex)
             {
-                // Normal with ctrl+c
+                Logger.LogInfo(ex);
             }
             finally
             {
-                await TerminateApplicationAsync();
+                await TerminateApplicationAsync(repository);
             }
         }
+        
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureServices((hostContext, services) =>
+                {
+                    services.AddSingleton<WabiSabiHttpApiClient>();
+                    services.AddSingleton<Scraper>();
+                    services.AddSingleton<Processor>();
+                    services.AddSingleton<Analyzer>();
+                });
 
-        private static Task TerminateApplicationAsync()
+        private static void TerminateApplicationAsync(IProcessedRoundRepository repository)
         {
             Logger.LogInfo("Closing.");
-            Db.Db.SaveToFileSystem();
+
+            repository.SaveToFileSystem();
             RpcServer?.Dispose();
-            return Task.CompletedTask;
         }
 
         public record PublicStatus(DateTimeOffset ScrapedAt, RoundStateResponse Rounds, HumanMonitorResponse HumanMonitor);
