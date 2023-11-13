@@ -11,10 +11,10 @@ namespace WabiSabiMonitor.Db;
 public class FileProcessedRoundRepository : IProcessedRoundRepository
 {
     private readonly string _path;
-    private Processor _dataProcessor;
+    private RoundDataReaderService _dataProcessor;
     
     //  private static string DbPath { get; } = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
-    public FileProcessedRoundRepository(string path, Processor dataProcessor)
+    public FileProcessedRoundRepository(string path, RoundDataReaderService dataProcessor)
     {
         _path = path;
         _dataProcessor = dataProcessor;
@@ -27,11 +27,11 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
             JsonConvert.SerializeObject(_dataProcessor!.Rounds, JsonSerializationOptions.CurrentSettings));
     }
 
-    public Dictionary<uint256, Processor.ProcessedRound>? ReadFromFileSystem()
+    public Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem()
     {
         try
         {
-            return JsonConvert.DeserializeObject<Dictionary<uint256, Processor.ProcessedRound>>(
+            return JsonConvert.DeserializeObject<Dictionary<uint256, RoundDataReaderService.ProcessedRound>>(
                 File.ReadAllText(_path), JsonSerializationOptions.CurrentSettings);
         }
         catch (Exception ex)

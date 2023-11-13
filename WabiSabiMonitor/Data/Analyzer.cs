@@ -6,59 +6,8 @@ using WabiSabiMonitor.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.Data;
 
-public class Analyzer : IAnalyzer
+public partial class Analyzer : IAnalyzer
 {
-    private RoundDataReader _roundDataReader;
-
-    public Analyzer(RoundDataReader roundDataReader)
-    {
-        _roundDataReader = roundDataReader;
-    }
-
-    public List<RoundState> GetCurrentRounds() =>
-        _roundDataReader.GetRounds(x => x.EndRoundState == EndRoundState.None);
-
-    public List<RoundState> GetRoundsStartedSince(DateTimeOffset since, Func<RoundState, bool>? predicate = null) =>
-        _roundDataReader.GetRounds(x => x.InputRegistrationStart >= since && (predicate?.Invoke(x) ?? true));
-
-    public List<RoundState> GetRoundsStartedSince(TimeSpan since, Func<RoundState, bool>? predicate = null) =>
-        GetRoundsStartedSince(DateTimeOffset.UtcNow - since, predicate);
-
-    public List<RoundState> GetRoundsFinishedSince(DateTimeOffset since, Func<RoundState, bool>? predicate = null) =>
-        _roundDataReader.GetRounds(x => !x.IsOngoing() && (predicate?.Invoke(x) ?? true),
-            x => x.LastUpdate >= since);
-
-    public List<RoundState> GetRoundsInInterval(DateTimeOffset? start, DateTimeOffset? end, Func<RoundState, bool>? predicate = null) =>
-        _roundDataReader.GetRounds(x =>
-            (start == default || x.InputRegistrationStart.DateTime >= start) &&
-            (end == default || x.InputRegistrationStart.DateTime <= end) && (predicate?.Invoke(x) ?? true));
-
-
-    public List<uint256> GetBlameOf(RoundState roundState)
-    {
-        if (roundState.BlameOf == uint256.Zero)
-        {
-            return new List<uint256>();
-        }
-
-        var result = new List<uint256>();
-        var toSearchId = roundState.BlameOf;
-        while (true)
-        {
-            var blameOf = GetRoundsStartedSince(TimeSpan.FromHours(1)).FirstOrDefault(x => x.Id == toSearchId);
-            if (blameOf is null)
-            {
-                result.Add(roundState.BlameOf);
-                break;
-            }
-
-            result.Add(toSearchId);
-            toSearchId = blameOf.BlameOf;
-        }
-
-        return result;
-    }
-
     public Analysis? AnalyzeRoundStates(List<RoundState> roundStates)
     {
         if (!roundStates.Any())
@@ -92,35 +41,9 @@ public class Analyzer : IAnalyzer
         var inputsAnonSet = new Dictionary<decimal, uint>();
         var outputsAnonSet = new Dictionary<decimal, uint>();
 
-        foreach (var dictionary in successes.Select(x => x.GetInputsAnonSet()))
-        {
-            foreach (var kvp in dictionary)
-            {
-                if (inputsAnonSet.ContainsKey(kvp.Key.ToUnit(MoneyUnit.BTC)))
-                {
-                    inputsAnonSet[kvp.Key.ToUnit(MoneyUnit.BTC)] += kvp.Value;
-                }
-                else
-                {
-                    inputsAnonSet.Add(kvp.Key.ToUnit(MoneyUnit.BTC), kvp.Value);
-                }
-            }
-        }
+        InitInputAnonSet(successes, inputsAnonSet);
 
-        foreach (var dictionary in successes.Select(x => x.GetOutputsAnonSet()))
-        {
-            foreach (var kvp in dictionary)
-            {
-                if (outputsAnonSet.ContainsKey(kvp.Key.ToUnit(MoneyUnit.BTC)))
-                {
-                    outputsAnonSet[kvp.Key.ToUnit(MoneyUnit.BTC)] += kvp.Value;
-                }
-                else
-                {
-                    outputsAnonSet.Add(kvp.Key.ToUnit(MoneyUnit.BTC), kvp.Value);
-                }
-            }
-        }
+        InitOutputAnonSet(successes, outputsAnonSet);
 
         var nbRounds = (decimal)successes.Count();
 
@@ -147,6 +70,42 @@ public class Analyzer : IAnalyzer
         return new Analysis(intervalStart, intervalEnd, inputsPerHour, btcPerHour, blameRoundsPerHour,
             estimatedNbOfBanPerHour,
             averageFeeRate, nbOutputPerInput, endRoundStatePercent, inputAnonSetAnalysis, outputsAnonSetAnalysis);
+    }
+
+    private static void InitOutputAnonSet(List<RoundState> successes, Dictionary<decimal, uint> outputsAnonSet)
+    {
+        foreach (var dictionary in successes.Select(x => x.GetOutputsAnonSet()))
+        {
+            foreach (var kvp in dictionary)
+            {
+                if (outputsAnonSet.ContainsKey(kvp.Key.ToUnit(MoneyUnit.BTC)))
+                {
+                    outputsAnonSet[kvp.Key.ToUnit(MoneyUnit.BTC)] += kvp.Value;
+                }
+                else
+                {
+                    outputsAnonSet.Add(kvp.Key.ToUnit(MoneyUnit.BTC), kvp.Value);
+                }
+            }
+        }
+    }
+
+    private static void InitInputAnonSet(List<RoundState> successes, Dictionary<decimal, uint> inputsAnonSet)
+    {
+        foreach (var dictionary in successes.Select(x => x.GetInputsAnonSet()))
+        {
+            foreach (var kvp in dictionary)
+            {
+                if (inputsAnonSet.ContainsKey(kvp.Key.ToUnit(MoneyUnit.BTC)))
+                {
+                    inputsAnonSet[kvp.Key.ToUnit(MoneyUnit.BTC)] += kvp.Value;
+                }
+                else
+                {
+                    inputsAnonSet.Add(kvp.Key.ToUnit(MoneyUnit.BTC), kvp.Value);
+                }
+            }
+        }
     }
 
     public record AnonSetAnalysisPerRound(decimal MedianWithoutChange, decimal FirstQuartileWithoutChange,

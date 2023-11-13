@@ -2,19 +2,20 @@
 
 namespace WabiSabiMonitor.Data;
 
-public class RoundDataReader
+// it should be renamed to DataProcessor
+public class RoundDataProcessor
 {
-    private Processor _dataProcessor;
+    private RoundDataReaderService _roundDataReader;
 
-    public RoundDataReader(Processor dataProcessor)
+    public RoundDataProcessor(RoundDataReaderService roundDataReader)
     {
-        _dataProcessor = dataProcessor;
+        _roundDataReader = roundDataReader;
     }
 
     public List<RoundState> GetRounds(Func<RoundState, bool>? roundStatePredicate = null,
-        Func<Processor.ProcessedRound, bool>? processedRoundPredicate = null)
+        Func<RoundDataReaderService.ProcessedRound, bool>? processedRoundPredicate = null)
     {
-        return _dataProcessor!.Rounds.Values.ToList()
+        return _roundDataReader!.Rounds.Values.ToList()
             .Where(x => processedRoundPredicate?.Invoke(x) ?? true)
             .Select(x => x.Round)
             .Where(x => roundStatePredicate?.Invoke(x) ?? true)
@@ -23,6 +24,6 @@ public class RoundDataReader
 
     public CoinJoinFeeRateMedian[] GetCurrentFeesConditions()
     {
-        return _dataProcessor!.Rounds.Last().Value.CoinJoinFeeRateMedian;
+        return _roundDataReader!.Rounds.Last().Value.CoinJoinFeeRateMedian;
     }
 }

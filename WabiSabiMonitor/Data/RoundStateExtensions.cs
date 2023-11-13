@@ -7,9 +7,9 @@ namespace WabiSabiMonitor.Data;
 
 public static class RoundStateExtensions
 {
-    public static Processor _processor;
+    public static RoundDataReaderService _processor;
 
-    static RoundStateExtensions(Processor processor)
+    static RoundStateExtensions(RoundDataReaderService processor)
     {
         _processor = processor;
     }
