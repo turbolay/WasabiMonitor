@@ -48,7 +48,7 @@ public class Processor : BackgroundService
             LastHumanMonitor = data.HumanMonitor;
         }
     }
-
+    
     public record ProcessedRound(DateTimeOffset LastUpdate, RoundState Round, AffiliateInformation Affiliates,
         CoinJoinFeeRateMedian[] CoinJoinFeeRateMedian)
     {

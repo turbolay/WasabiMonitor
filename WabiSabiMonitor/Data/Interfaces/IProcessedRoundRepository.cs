@@ -1,4 +1,5 @@
 ﻿using NBitcoin;
+using WabiSabiMonitor.Data.Models;
 
 namespace WabiSabiMonitor.Data.Interfaces;
 

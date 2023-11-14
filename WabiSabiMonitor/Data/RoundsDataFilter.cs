@@ -5,11 +5,11 @@ using WabiSabiMonitor.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.Data;
 
-public class RounDataFilter : IRoundDataFilter
+public class RoundsDataFilter : IRoundsDataFilter
 {
     private readonly RoundDataProcessor _roundDataProcessor;
 
-    public RounDataFilter(RoundDataProcessor roundDataProcessor)
+    public RoundsDataFilter(RoundDataProcessor roundDataProcessor)
     {
         _roundDataProcessor = roundDataProcessor;
     }
@@ -32,6 +32,23 @@ public class RounDataFilter : IRoundDataFilter
         _roundDataProcessor.GetRounds(x => !x.IsOngoing() && (predicate?.Invoke(x) ?? true),
             x => x.LastUpdate >= since);
 
+    public uint GetNbBanEstimation( RoundState roundState)
+    {
+        if (!roundState.IsBlame())
+        {
+            return 0;
+        }
+
+        var blameOf = GetRoundsStartedSince(TimeSpan.FromHours(1))
+            .FirstOrDefault(x => x.BlameOf == roundState.Id);
+        if (blameOf is null)
+        {
+            return 0;
+        }
+
+        // possible minus
+        return roundState.GetConfirmedInputsCount() - blameOf.GetInputsCount();
+    }
     public List<uint256> GetBlameOf(RoundState roundState)
     {
         if (roundState.BlameOf == uint256.Zero)

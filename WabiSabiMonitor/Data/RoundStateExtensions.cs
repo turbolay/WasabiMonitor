@@ -7,13 +7,6 @@ namespace WabiSabiMonitor.Data;
 
 public static class RoundStateExtensions
 {
-    public static RoundDataReaderService _processor;
-
-    static RoundStateExtensions(RoundDataReaderService processor)
-    {
-        _processor = processor;
-    }
-
     public static uint GetOutputsCount(this RoundState roundState) =>
         (uint)roundState.CoinjoinState.Outputs.Count();
 
@@ -105,22 +98,4 @@ public static class RoundStateExtensions
 
     public static uint GetConfirmedInputsCount(this RoundState roundState) =>
         (uint)roundState.CoinjoinState.Inputs.Count();
-
-    public static uint GetNbBanEstimation(this RoundState roundState)
-    {
-        if (!roundState.IsBlame())
-        {
-            return 0;
-        }
-
-        var blameOf = Analyzer.GetRoundsStartedSince(TimeSpan.FromHours(1))
-            .FirstOrDefault(x => x.BlameOf == roundState.Id);
-        if (blameOf is null)
-        {
-            return 0;
-        }
-
-        // possible minus
-        return roundState.GetConfirmedInputsCount() - blameOf.GetInputsCount();
-    }
 }

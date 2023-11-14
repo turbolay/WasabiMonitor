@@ -8,13 +8,15 @@ using WabiSabiMonitor.Utils.WabiSabi.Models;
 namespace WabiSabiMonitor.Rpc;
 public class WabiSabiMonitorRpc : IJsonRpcService
 {
-    private readonly IRoundDataFilter _filter;
-    private readonly Analyzer _analyzer;
+    private readonly IRoundsDataFilter _filter;
+    private readonly IAnalyzer _analyzer;
+    private readonly BetterHumanMonitor _betterHumanMonitor;
 
-    public WabiSabiMonitorRpc(IRoundDataFilter filter, Analyzer analyzer)
+    public WabiSabiMonitorRpc(IRoundsDataFilter filter, IAnalyzer analyzer, BetterHumanMonitor betterHumanMonitor)
     {
         _filter = filter;
         _analyzer = analyzer;
+        _betterHumanMonitor = betterHumanMonitor;
     }
 
     [JsonRpcMethod("echo")]
@@ -27,7 +29,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
 
     [JsonRpcMethod("better-human-monitor")]
     public BetterHumanMonitorModel GetBetterHumanMonitor() =>
-        BetterHumanMonitor.GetApiResponse();
+        _betterHumanMonitor.GetApiResponse();
 
     [JsonRpcMethod("get-analysis")]
     public Analyzer.Analysis? GetAnalysis(string? startTime = null, string? endTime = null)

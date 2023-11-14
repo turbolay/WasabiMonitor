@@ -3,6 +3,7 @@ using NBitcoin;
 using Newtonsoft.Json;
 using WabiSabiMonitor.Data;
 using WabiSabiMonitor.Data.Interfaces;
+using WabiSabiMonitor.Data.Models;
 using WabiSabiMonitor.Utils.Helpers;
 using WabiSabiMonitor.Utils.WabiSabi.Models.Serialization;
 
@@ -13,25 +14,25 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
     private readonly string _path;
     private RoundDataReaderService _dataProcessor;
     
-    //  private static string DbPath { get; } = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
+    //  path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
     public FileProcessedRoundRepository(string path, RoundDataReaderService dataProcessor)
     {
         _path = path;
         _dataProcessor = dataProcessor;
     }
 
-//?
+    //?
     public void SaveToFileSystem()
     {
         File.WriteAllText(_path,
             JsonConvert.SerializeObject(_dataProcessor!.Rounds, JsonSerializationOptions.CurrentSettings));
     }
 
-    public Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem()
+    public Dictionary<uint256, Processor.ProcessedRound>? ReadFromFileSystem()
     {
         try
         {
-            return JsonConvert.DeserializeObject<Dictionary<uint256, RoundDataReaderService.ProcessedRound>>(
+            return JsonConvert.DeserializeObject<Dictionary<uint256, Processor.ProcessedRound>>(
                 File.ReadAllText(_path), JsonSerializationOptions.CurrentSettings);
         }
         catch (Exception ex)

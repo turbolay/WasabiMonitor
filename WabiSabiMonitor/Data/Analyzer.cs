@@ -6,7 +6,7 @@ using WabiSabiMonitor.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.Data;
 
-public partial class Analyzer : IAnalyzer
+public class Analyzer : IAnalyzer
 {
     public Analysis? AnalyzeRoundStates(List<RoundState> roundStates)
     {

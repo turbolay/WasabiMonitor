@@ -1,21 +1,33 @@
 using NBitcoin;
 using WabiSabiMonitor.Data;
+using WabiSabiMonitor.Data.Interfaces;
 using WabiSabiMonitor.Rpc.Models;
 using WabiSabiMonitor.Utils.Extensions;
 using WabiSabiMonitor.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor;
 
-public static class BetterHumanMonitor
+public class BetterHumanMonitor
 {
-    public static BetterHumanMonitorModel GetApiResponse(DateTimeOffset? start = null, DateTimeOffset? end = null)
-    {
+    private readonly IRoundsDataFilter _roundDataFilter;
+    private readonly RoundDataProcessor _roundDataProcessor;
+    private readonly IAnalyzer _analyzer;
 
+    public BetterHumanMonitor(IRoundsDataFilter roundDataFilter, RoundDataProcessor roundDataProcessor,
+        IAnalyzer analyzer)
+    {
+        _roundDataFilter = roundDataFilter;
+        _roundDataProcessor = roundDataProcessor;
+        _analyzer = analyzer;
+    }
+
+    public BetterHumanMonitorModel GetApiResponse(DateTimeOffset? start = null, DateTimeOffset? end = null)
+    {
         var result = BetterHumanMonitorModel.Empty();
 
         BetterHumanMonitorRound CreateBetterHumanMonitorRound(RoundState round)
         {
-            var blame = Analyzer.GetBlameOf(round);
+            var blame = _roundDataFilter.GetBlameOf(round);
             var currentPhase = round.GetCurrentPhase();
             var inputsCount = round.GetInputsCount();
             var confirmedInputsCount = round.GetInputsCount();
@@ -24,17 +36,17 @@ public static class BetterHumanMonitor
             var inputsAnonSet = round.GetInputsAnonSet();
             var outputsAnonSet = round.GetOutputsAnonSet();
             var feeRate = round.GetFeeRate();
-            var currentFeesConditions = Analyzer.GetCurrentFeesConditions();
-            return new(round.Id, blame, currentPhase.FriendlyName(), round.EndRoundState.FriendlyName(), inputsCount, confirmedInputsCount, outputsCount, signaturesCount, inputsAnonSet,
+            var currentFeesConditions = _roundDataProcessor.GetCurrentFeesConditions();
+            return new(round.Id, blame, currentPhase.FriendlyName(), round.EndRoundState.FriendlyName(), inputsCount,
+                confirmedInputsCount, outputsCount, signaturesCount, inputsAnonSet,
                 outputsAnonSet, feeRate, currentFeesConditions);
         }
 
-        var allRoundsInInterval = Analyzer.GetRoundsInInterval(start, end);
+        var allRoundsInInterval = _roundDataFilter.GetRoundsInInterval(start, end);
 
-        var currentRounds = Analyzer.GetCurrentRounds();
+        var currentRounds = _roundDataFilter.GetCurrentRounds();
         foreach (var current in currentRounds)
         {
-
             result.CurrentRounds.Add(CreateBetterHumanMonitorRound(current));
         }
 
@@ -43,11 +55,10 @@ public static class BetterHumanMonitor
 
         foreach (var lastPeriodRound in lastPeriodRounds)
         {
-
             result.LastPeriod.Add(CreateBetterHumanMonitorRound(lastPeriodRound));
         }
 
-        result.Analysis = Analyzer.AnalyzeRoundStates(lastPeriodRounds.ToList());
+        result.Analysis = _analyzer.AnalyzeRoundStates(lastPeriodRounds.ToList());
 
         return result;
     }
@@ -81,7 +92,6 @@ public static class BetterHumanMonitor
             FeeRate? feeRate,
             CoinJoinFeeRateMedian[] currentFeesConditions)
         {
-
             Id = id;
             Blame = blame;
             CurrentPhase = currentPhase;

@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WabiSabiMonitor.Data;
 using WabiSabiMonitor.Data.Interfaces;
@@ -14,6 +12,7 @@ using WabiSabiMonitor.Utils.Services.Terminate;
 using WabiSabiMonitor.Utils.Tor.Http;
 using WabiSabiMonitor.Utils.WabiSabi.Backend.PostRequests;
 using WabiSabiMonitor.Utils.WabiSabi.Client;
+
 // ReSharper disable InconsistentlySynchronizedField
 
 namespace WabiSabiMonitor
@@ -23,13 +22,13 @@ namespace WabiSabiMonitor
         public static Config? Config { get; set; }
         public static JsonRpcServer? RpcServer { get; private set; }
         public static RoundDataReaderService? DataProcessor { get; private set; }
-        public static IHttpClientFactory? HttpClientFactory {get; set;}
+        public static IHttpClientFactory? HttpClientFactory { get; set; }
 
         private static object LockClosure { get; } = new();
-        
+
         public static WabiSabiHttpApiClient WabiSabiApiClient { get; private set; }
 
-        private static readonly CancellationTokenSource CancellationTokenSource = new ();
+        private static readonly CancellationTokenSource CancellationTokenSource = new();
 
         private static void HandleClosure()
         {
@@ -43,7 +42,7 @@ namespace WabiSabiMonitor
                     }
                 }
             };
-            
+
             Console.CancelKeyPress += (sender, e) =>
             {
                 e.Cancel = true; // Prevent the default Ctrl+C behavior
@@ -54,10 +53,10 @@ namespace WabiSabiMonitor
                         CancellationTokenSource.Cancel();
                     }
                 }
-            };   
-        }      
-        
-        
+            };
+        }
+
+
         private static PersistentConfig LoadOrCreateConfigs()
         {
             Directory.CreateDirectory(Config.DataDir);
@@ -70,32 +69,34 @@ namespace WabiSabiMonitor
 
         private static void ConfigureClients()
         {
+            Logger.LogInfo("creating http clients...");
             var clientFactory = Services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>();
             var client = clientFactory.CreateClient();
 
             client.BaseAddress = Config!.GetCoordinatorUri();
 
             Services.AddSingleton<IHttpClient, ClearnetHttpClient>();
-            
-            Services.AddSingleton<IWabiSabiApiRequestHandler>(new WabiSabiHttpApiClient(new ClearnetHttpClient(client)));
-            
+
+            Services.AddSingleton<IWabiSabiApiRequestHandler>(
+                new WabiSabiHttpApiClient(new ClearnetHttpClient(client)));
+
             // var httpClient = new HttpClient();
             // httpClient.BaseAddress = Config!.GetCoordinatorUri();
             // WabiSabiApiClient = new WabiSabiHttpApiClient();
         }
-        
+
         public static async Task Main(string[] args)
         {
-            //moved here
-            
             var repositoryPath = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
 
             try
             {
+                var host = CreateHostBuilder(args).Build();
+                
                 ConfigureServices(host);
-                await Start(repositoryPath);
+                
+                await Start(host, repositoryPath);
             }
-            // it may affect on business logic of the app. Prev versions was with TaskCancelledException
             catch (Exception ex)
             {
                 Logger.LogInfo(ex);
@@ -106,21 +107,17 @@ namespace WabiSabiMonitor
             }
         }
 
-        private static async Task Start(string repositoryPath)
+        private static async Task Start(IHost host, string repositoryPath)
         {
             var roundStatusScraper = host.Services.GetRequiredService<Scraper>();
             var dataProcessor = host.Services.GetRequiredService<RoundDataReaderService>();
-
+            var rpcServerController = host.Services.GetRequiredService<RpcServerController>();
             var repository = new FileProcessedRoundRepository(repositoryPath, dataProcessor);
 
             await host.RunAsync();
 
             Logger.InitializeDefaults("./logs.txt");
             Logger.LogInfo("Read confi...");
-
-
-            Logger.LogInfo("creating http clients...");
-
 
             await roundStatusScraper.StartAsync(CancellationTokenSource.Token);
             await roundStatusScraper.TriggerAndWaitRoundAsync(CancellationTokenSource.Token);
@@ -130,46 +127,45 @@ namespace WabiSabiMonitor
             var DataProcessor = host.Services.GetRequiredService<RoundDataReaderService>();
             DataProcessor = new(repository.ReadFromFileSystem());
             await DataProcessor.StartAsync(CancellationTokenSource.Token);
-
-            await StartRpcServerAsync(CancellationTokenSource.Token);
+            
+            await rpcServerController.StartRpcServerAsync(CancellationTokenSource.Token);
             Logger.LogInfo("Initialized.");
             await Task.Delay(-1, CancellationTokenSource.Token);
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
-                    Host.CreateDefaultBuilder(args);
+            Host.CreateDefaultBuilder(args);
 
-        private static void ConfigureServices(string[] args)
+        private static void ConfigureServices(IHost host)
         {
+            Logger.LogInfo("Configure services...");
             HandleClosure();
-
             var serviceCollection = new ServiceCollection();
-            
-            // check how configure BaseAddress prop
             serviceCollection.AddHttpClient();
 
             ConfigureClients();
 
             Config = new Config(LoadOrCreateConfigs(), Array.Empty<string>());
 
-            serviceCollection.AddSingleton(new JsonRpcServerConfiguration(true, Config!.JsonRpcUser, Config.JsonRpcPassword, Config.JsonRpcServerPrefixes));
-
-            serviceCollection.AddSingleton(
-                new JsonRpcServer(new WabiSabiMonitorRpc(),
-                host.Services.GetRequiredService<JsonRpcServerConfiguration>(),
-                new TerminateService(TerminateApplicationAsync, () => { })));
-
+            serviceCollection.AddSingleton(new JsonRpcServerConfiguration(true, Config!.JsonRpcUser,
+                Config.JsonRpcPassword, Config.JsonRpcServerPrefixes));
+            serviceCollection.AddSingleton<JsonRpcServer>(serviceProvider =>
+            {
+                var jsonRpcServerConfig = serviceProvider.GetRequiredService<JsonRpcServerConfiguration>();
+                var jsonRpcServer = new JsonRpcServer(
+                    new WabiSabiMonitorRpc(),
+                    jsonRpcServerConfig,
+                    new TerminateService(TerminateApplicationAsync, () => { })
+                );
+                return jsonRpcServer;
+            });
 
             serviceCollection.AddSingleton<Scraper>();
             serviceCollection.AddSingleton<RoundDataReaderService>();
-            serviceCollection.AddSingleton<Analyzer>();
-
-            var host = CreateHostBuilder(args)
-                .ConfigureServices((context, services) => 
-                {
-                    // check how we can register services above.
-                })
-                .Build();
+            serviceCollection.AddSingleton<IAnalyzer, Analyzer>();
+            serviceCollection.AddSingleton<RpcServerController>();
+            
+            serviceCollection.BuildServiceProvider();
         }
 
         private static Task TerminateApplicationAsync()

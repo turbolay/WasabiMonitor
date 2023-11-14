@@ -19,7 +19,7 @@ public class RpcServerController
         _jsonRpcServerConfiguration = jsonRpcServerConfiguration;
     }
 
-    private async Task StartRpcServerAsync(CancellationToken cancel)
+    public async Task StartRpcServerAsync(CancellationToken cancel)
     {
         if (_jsonRpcServerConfiguration.IsEnabled)
         {

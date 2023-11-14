@@ -5,7 +5,7 @@ namespace WabiSabiMonitor.Data;
 // it should be renamed to DataProcessor
 public class RoundDataProcessor
 {
-    private RoundDataReaderService _roundDataReader;
+    private readonly RoundDataReaderService _roundDataReader;
 
     public RoundDataProcessor(RoundDataReaderService roundDataReader)
     {
