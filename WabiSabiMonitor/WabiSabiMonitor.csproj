@@ -12,6 +12,7 @@
       <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="6.0.0-preview.4.21253.5" />
       <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
       <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0-rc.2.23480.1" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-rc.2.23479.6" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0-rc.2.23479.6" />
       <PackageReference Include="Microsoft.Win32.SystemEvents" Version="8.0.0-rc.2.23479.6" />
@@ -27,6 +28,12 @@
       <None Remove="logs.txt" />
 
 
+    </ItemGroup>
+
+
+
+    <ItemGroup>
+      <ProjectReference Include="..\WabiSabiMonitor.ApplicationCore\WabiSabiMonitor.ApplicationCore.csproj" />
     </ItemGroup>
 
 
