@@ -32,7 +32,7 @@ namespace WabiSabiMonitor
                 HandleClosure();
 
                 var host = CreateHostBuilder(args).Build();
-
+             
                 var applicationCore = host.Services.GetRequiredService<ApplicationCore.ApplicationCore>();
 
                 await applicationCore.Run();
@@ -51,10 +51,12 @@ namespace WabiSabiMonitor
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((_, services) =>
                 {
+                   
                     services.AddSingleton<IRoundsDataFilter, RoundsDataFilter>();
                     services.AddSingleton<IAnalyzer, Analyzer>();
                     services.AddSingleton<BetterHumanMonitor>();
-                    services.AddSingleton<IWabiSabiApiRequestHandler, WabiSabiHttpApiClient>((sp) =>
+                    services.AddSingleton<RoundDataReaderService>();
+                    services.AddSingleton<WabiSabiHttpApiClient>((sp) =>
                     {
                         var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
                         var client = clientFactory.CreateClient();
@@ -85,9 +87,12 @@ namespace WabiSabiMonitor
 
                         return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
                     });
-
+                    services.AddSingleton<IWabiSabiApiRequestHandlerAdapter,WabiSabiApiRequestHandlerAdapter>();
                     services.AddSingleton<Scraper>();
                     services.AddSingleton<ApplicationCore.ApplicationCore>();
+                    
+                    var config = new Config(LoadOrCreateConfigs(), Array.Empty<string>());
+                    ConfigureClients(services, config);
                 });
 
 
@@ -150,7 +155,7 @@ namespace WabiSabiMonitor
         //     return serviceCollection;
         // }
 
-        private static void ConfigureClients(ServiceCollection services, Config config)
+        private static void ConfigureClients(IServiceCollection services, Config config)
         {
             services.AddHttpClient();
 
