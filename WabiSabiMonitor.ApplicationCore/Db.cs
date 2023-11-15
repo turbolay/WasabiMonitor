@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using NBitcoin;
 using Newtonsoft.Json;
 using WabiSabiMonitor.ApplicationCore.Data;

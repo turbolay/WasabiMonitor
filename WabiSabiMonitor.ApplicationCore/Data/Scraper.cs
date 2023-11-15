@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Microsoft.Extensions.DependencyInjection;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Bases;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.PostRequests;
@@ -14,10 +15,10 @@ public class Scraper : PeriodicRunner
     private readonly IWabiSabiApiRequestHandler _wabiSabiHttpApiClient;
     private readonly IWabiSabiApiRequestHandlerAdapter _adapter;
 
-    public Scraper(IWabiSabiApiRequestHandler wabiSabiHttpApiClient, IWabiSabiApiRequestHandlerAdapter adapter) : base(Interval)
+    public Scraper(IWabiSabiApiRequestHandler wabiSabiApiRequestHandler, IWabiSabiApiRequestHandlerAdapter wabiSabiApiRequestHandlerAdapter) : base(Interval)
     {
-        _wabiSabiHttpApiClient = wabiSabiHttpApiClient;
-        _adapter = adapter;
+        _wabiSabiHttpApiClient = wabiSabiApiRequestHandler;
+        _adapter = wabiSabiApiRequestHandlerAdapter;
     }
     
     protected override async Task ActionAsync(CancellationToken cancel)

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using NBitcoin;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Extensions;
@@ -8,6 +9,15 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 
 public class Analyzer : IAnalyzer
 {
+    private readonly RoundDataReaderService _roundDataReaderService;
+    private readonly IRoundsDataFilter _roundsDataFilter;
+
+    public Analyzer(RoundDataReaderService roundDataReaderService, IRoundsDataFilter roundsDataFilter)
+    {
+        _roundDataReaderService = roundDataReaderService;
+        _roundsDataFilter = roundsDataFilter;
+    }
+
     public Analysis? AnalyzeRoundStates(List<RoundState> roundStates)
     {
         if (!roundStates.Any())
@@ -20,7 +30,7 @@ public class Analyzer : IAnalyzer
         var intervalDuration = intervalEnd - intervalStart;
         var successes = roundStates.Where(x => x.IsSuccess()).ToList();
 
-        double inputsPerHour = Math.Round(successes.Sum(x => x.GetInputsCount()) / intervalDuration.TotalHours, 2);
+        double inputsPerHour = Math.Round(successes.Sum(x => x.GetInputsCount(_roundDataReaderService)) / intervalDuration.TotalHours, 2);
         decimal btcPerHour =
             Math.Round(
                 successes.Sum(x => x.GetTotalInputsAmount().ToUnit(MoneyUnit.BTC)) /
@@ -28,11 +38,11 @@ public class Analyzer : IAnalyzer
         double blameRoundsPerHour =
             Math.Round(roundStates.Sum(x => x.IsBlame() ? 1 : 0) / intervalDuration.TotalHours, 1);
         double estimatedNbOfBanPerHour =
-            roundStates.Sum(x => x.GetNbBanEstimation()) / intervalDuration.TotalHours;
+            roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
         decimal averageFeeRate = Math.Round(successes.Average(x => x.GetFeeRate().SatoshiPerByte));
         decimal nbOutputPerInput =
             Math.Round(
-                (decimal)successes.Sum(x => x.GetOutputsCount()) / (decimal)successes.Sum(x => x.GetInputsCount()), 2);
+                (decimal)successes.Sum(x => x.GetOutputsCount()) / (decimal)successes.Sum(x => x.GetInputsCount(_roundDataReaderService)), 2);
 
         var endRoundStatePercent = roundStates.GroupBy(x => x.EndRoundState)
             .Select(x => new KeyValuePair<EndRoundState, double>(x.Key, x.Count() / (double)roundStates.Count))

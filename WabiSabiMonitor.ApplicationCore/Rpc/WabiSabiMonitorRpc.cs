@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Rpc.Models;

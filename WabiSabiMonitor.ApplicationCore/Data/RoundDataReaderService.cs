@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.Hosting;
 using NBitcoin;
+using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Affiliation.Models;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;
 
-// I guess it should be renamed to RoundDataReader
 public class RoundDataReaderService : BackgroundService
 {
     public Dictionary<uint256, ProcessedRound> Rounds { get; }

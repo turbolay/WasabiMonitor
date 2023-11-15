@@ -6,32 +6,36 @@ namespace WabiSabiMonitor.ApplicationCore
 {
     public class ApplicationCore
     {
-        public ApplicationCore()
-        {
+        private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly Scraper _roundStatusScraper;
+        private readonly RoundDataReaderService _dataProcessor;
+        private readonly RpcServerController _rpcServerController;
 
+        public ApplicationCore(Scraper roundStatusScraper, RoundDataReaderService dataProcessor,
+            RpcServerController rpcServerController)
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+            _roundStatusScraper = roundStatusScraper;
+            _dataProcessor = dataProcessor;
+            _rpcServerController = rpcServerController;
         }
 
         public async Task Run()
         {
-            var roundStatusScraper = Di.ServiceProvider.GetRequiredService<Scraper>();
-            var dataProcessor = Di.ServiceProvider.GetRequiredService<RoundDataReaderService>();
-            var rpcServerController = Di.ServiceProvider.GetRequiredService<RpcServerController>();
-
             Logger.InitializeDefaults("./logs.txt");
             Logger.LogInfo("Read confi...");
 
-            await roundStatusScraper.StartAsync(CancellationTokenSource.Token);
-            await roundStatusScraper.TriggerAndWaitRoundAsync(CancellationTokenSource.Token);
+            //changed to _cancellationTokenSource from CancellationTokenSource.Token
+            await _roundStatusScraper.StartAsync(_cancellationTokenSource.Token);
+            await _roundStatusScraper.TriggerAndWaitRoundAsync(_cancellationTokenSource.Token);
 
-            await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(CancellationTokenSource.Token);
+            await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(_cancellationTokenSource.Token);
 
-            var dataProcessor = host.Services.GetRequiredService<RoundDataReaderService>();
-            dataProcessor = new(repository.ReadFromFileSystem());
-            await dataProcessor.StartAsync(CancellationTokenSource.Token);
+            await _dataProcessor.StartAsync(_cancellationTokenSource.Token);
 
-            await rpcServerController.StartRpcServerAsync(CancellationTokenSource.Token);
+            await _rpcServerController.StartRpcServerAsync(_cancellationTokenSource.Token);
             Logger.LogInfo("Initialized.");
-            await Task.Delay(-1, CancellationTokenSource.Token);
+            await Task.Delay(-1, _cancellationTokenSource.Token);
         }
     }
 }

@@ -6,6 +6,6 @@ namespace WabiSabiMonitor.ApplicationCore
 {
     public class Di
     {
-        public static ServiceProvider ServiceProvider { get; internal set; }
+        public static ServiceProvider ServiceProvider { get; set; }
     }
 }

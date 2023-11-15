@@ -17,4 +17,6 @@ public interface IRoundsDataFilter
     List<RoundState> GetRoundsFinishedSince(DateTimeOffset since, Func<RoundState, bool>? predicate = null);
 
     List<uint256> GetBlameOf(RoundState roundState);
+    
+    public uint GetNbBanEstimation(RoundState roundState);
 }

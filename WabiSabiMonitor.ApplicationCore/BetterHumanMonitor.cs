@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using NBitcoin;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
@@ -10,15 +11,16 @@ namespace WabiSabiMonitor.ApplicationCore;
 public class BetterHumanMonitor
 {
     private readonly IRoundsDataFilter _roundDataFilter;
-    private readonly RoundDataProcessor _roundDataProcessor;
+    private readonly IRoundDataProcessor _roundDataProcessor;
     private readonly IAnalyzer _analyzer;
+    private readonly RoundDataReaderService _roundDataReaderService;
 
-    public BetterHumanMonitor(IRoundsDataFilter roundDataFilter, RoundDataProcessor roundDataProcessor,
-        IAnalyzer analyzer)
+    public BetterHumanMonitor(IRoundsDataFilter roundDataFilter, IRoundDataProcessor roundDataProcessor, IAnalyzer analyzer, RoundDataReaderService roundDataReaderService)
     {
         _roundDataFilter = roundDataFilter;
         _roundDataProcessor = roundDataProcessor;
         _analyzer = analyzer;
+        _roundDataReaderService = roundDataReaderService;
     }
 
     public BetterHumanMonitorModel GetApiResponse(DateTimeOffset? start = null, DateTimeOffset? end = null)
@@ -29,8 +31,8 @@ public class BetterHumanMonitor
         {
             var blame = _roundDataFilter.GetBlameOf(round);
             var currentPhase = round.GetCurrentPhase();
-            var inputsCount = round.GetInputsCount();
-            var confirmedInputsCount = round.GetInputsCount();
+            var inputsCount = round.GetInputsCount(_roundDataReaderService);
+            var confirmedInputsCount = round.GetInputsCount(_roundDataReaderService);
             var outputsCount = round.GetOutputsCount();
             var signaturesCount = round.GetSignaturesCount();
             var inputsAnonSet = round.GetInputsAnonSet();

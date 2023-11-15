@@ -1,15 +1,16 @@
-﻿using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
+﻿using Microsoft.Extensions.DependencyInjection;
+using WabiSabiMonitor.ApplicationCore.Interfaces;
+using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;
 
-// it should be renamed to DataProcessor
-public class RoundDataProcessor
+public class RoundDataProcessor : IRoundDataProcessor
 {
     private readonly RoundDataReaderService _roundDataReader;
 
-    public RoundDataProcessor(RoundDataReaderService roundDataReader)
+    public RoundDataProcessor(RoundDataReaderService roundDataReaderService)
     {
-        _roundDataReader = roundDataReader;
+        _roundDataReader = roundDataReaderService;
     }
 
     public List<RoundState> GetRounds(Func<RoundState, bool>? roundStatePredicate = null,

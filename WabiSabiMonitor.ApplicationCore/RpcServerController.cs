@@ -6,7 +6,7 @@ namespace WabiSabiMonitor.ApplicationCore;
 
 public class RpcServerController
 {
-    private JsonRpcServer _rpcServer;
+    private readonly JsonRpcServer _rpcServer;
     private readonly JsonRpcServerConfiguration _jsonRpcServerConfiguration;
 
     public RpcServerController(JsonRpcServer rpcServer, JsonRpcServerConfiguration jsonRpcServerConfiguration)

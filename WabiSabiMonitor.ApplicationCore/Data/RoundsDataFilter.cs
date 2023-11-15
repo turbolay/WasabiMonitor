@@ -1,4 +1,5 @@
-﻿using NBitcoin;
+﻿using Microsoft.Extensions.DependencyInjection;
+using NBitcoin;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
@@ -8,10 +9,12 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 public class RoundsDataFilter : IRoundsDataFilter
 {
     private readonly RoundDataProcessor _roundDataProcessor;
+    private readonly RoundDataReaderService _roundDataReaderService;
 
-    public RoundsDataFilter(RoundDataProcessor roundDataProcessor)
+    public RoundsDataFilter( RoundDataProcessor roundDataProcessor, RoundDataReaderService roundDataReaderService)
     {
         _roundDataProcessor = roundDataProcessor;
+        _roundDataReaderService = roundDataReaderService;
     }
 
     public List<RoundState> GetRoundsInInterval(DateTimeOffset? start, DateTimeOffset? end, Func<RoundState, bool>? predicate = null) =>
@@ -47,7 +50,7 @@ public class RoundsDataFilter : IRoundsDataFilter
         }
 
         // possible minus
-        return roundState.GetConfirmedInputsCount() - blameOf.GetInputsCount();
+        return roundState.GetConfirmedInputsCount() - blameOf.GetInputsCount(_roundDataReaderService);
     }
     public List<uint256> GetBlameOf(RoundState roundState)
     {
