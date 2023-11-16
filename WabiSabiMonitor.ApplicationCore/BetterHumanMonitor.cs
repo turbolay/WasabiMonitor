@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using NBitcoin;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
@@ -15,7 +14,8 @@ public class BetterHumanMonitor
     private readonly IAnalyzer _analyzer;
     private readonly RoundDataReaderService _roundDataReaderService;
 
-    public BetterHumanMonitor(IRoundsDataFilter roundDataFilter, IRoundDataProcessor roundDataProcessor, IAnalyzer analyzer, RoundDataReaderService roundDataReaderService)
+    public BetterHumanMonitor(IRoundsDataFilter roundDataFilter, IRoundDataProcessor roundDataProcessor,
+        IAnalyzer analyzer, RoundDataReaderService roundDataReaderService)
     {
         _roundDataFilter = roundDataFilter;
         _roundDataProcessor = roundDataProcessor;

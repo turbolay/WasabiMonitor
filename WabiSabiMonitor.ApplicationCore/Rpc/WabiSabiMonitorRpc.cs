@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Rpc.Models;
@@ -7,6 +6,7 @@ using WabiSabiMonitor.ApplicationCore.Utils.Rpc;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.ApplicationCore.Rpc;
+
 public class WabiSabiMonitorRpc : IJsonRpcService
 {
     private readonly IRoundsDataFilter _filter;
@@ -40,6 +40,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
         {
             startDateTime = DateTime.UtcNow - TimeSpan.FromHours(12);
         }
+
         return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime));
     }
 
@@ -59,6 +60,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
             throw new ArgumentException(
                 $"Couldn't parse start time: {startTime}. Suggested format: YYYY-MM-DDTHH:MM:SSZ");
         }
+
         if (endTime != null && !DateTime.TryParse(endTime, out endDateTime))
         {
             throw new ArgumentException(

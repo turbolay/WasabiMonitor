@@ -5,9 +5,9 @@ using WabiSabiMonitor.ApplicationCore.Data;
 
 namespace WabiSabiMonitor.ApplicationCore.Utils.JsonConverters;
 
-public class Uint256DictionaryJsonConverter : JsonConverter<Dictionary<uint256, Processor.ProcessedRound>>
+public class Uint256DictionaryJsonConverter : JsonConverter<Dictionary<uint256, RoundDataReaderService.ProcessedRound>>
 {
-    public override void WriteJson(JsonWriter writer, Dictionary<uint256, Processor.ProcessedRound>? value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, Dictionary<uint256, RoundDataReaderService.ProcessedRound>? value, JsonSerializer serializer)
     {
         if (value == null)
         {
@@ -30,9 +30,9 @@ public class Uint256DictionaryJsonConverter : JsonConverter<Dictionary<uint256, 
     }
 
 
-    public override Dictionary<uint256, Processor.ProcessedRound>? ReadJson(JsonReader reader, Type objectType, Dictionary<uint256, Processor.ProcessedRound>? existingValue, bool hasExistingValue, JsonSerializer serializer)
+    public override Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadJson(JsonReader reader, Type objectType, Dictionary<uint256, RoundDataReaderService.ProcessedRound>? existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        var result = new Dictionary<uint256, Processor.ProcessedRound?>();
+        var result = new Dictionary<uint256, RoundDataReaderService.ProcessedRound?>();
         var jsonObject = JObject.Load(reader);
 
         foreach (var property in jsonObject.Properties())
@@ -41,7 +41,7 @@ public class Uint256DictionaryJsonConverter : JsonConverter<Dictionary<uint256, 
             uint256? key = new Uint256JsonConverter().ReadJson(property.Name, typeof(uint256), existingValue: null, hasExistingValue: false, serializer);
 
             // Deserialize the value part of the property
-            Processor.ProcessedRound? value = property.Value.ToObject<Processor.ProcessedRound>(serializer);
+            RoundDataReaderService.ProcessedRound? value = property.Value.ToObject<RoundDataReaderService.ProcessedRound>(serializer);
 
             if (key != null) result[key] = value;
         }

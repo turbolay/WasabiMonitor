@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using NBitcoin;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Extensions;
@@ -30,7 +29,8 @@ public class Analyzer : IAnalyzer
         var intervalDuration = intervalEnd - intervalStart;
         var successes = roundStates.Where(x => x.IsSuccess()).ToList();
 
-        double inputsPerHour = Math.Round(successes.Sum(x => x.GetInputsCount(_roundDataReaderService)) / intervalDuration.TotalHours, 2);
+        double inputsPerHour =
+            Math.Round(successes.Sum(x => x.GetInputsCount(_roundDataReaderService)) / intervalDuration.TotalHours, 2);
         decimal btcPerHour =
             Math.Round(
                 successes.Sum(x => x.GetTotalInputsAmount().ToUnit(MoneyUnit.BTC)) /
@@ -42,7 +42,8 @@ public class Analyzer : IAnalyzer
         decimal averageFeeRate = Math.Round(successes.Average(x => x.GetFeeRate().SatoshiPerByte));
         decimal nbOutputPerInput =
             Math.Round(
-                (decimal)successes.Sum(x => x.GetOutputsCount()) / (decimal)successes.Sum(x => x.GetInputsCount(_roundDataReaderService)), 2);
+                (decimal)successes.Sum(x => x.GetOutputsCount()) /
+                (decimal)successes.Sum(x => x.GetInputsCount(_roundDataReaderService)), 2);
 
         var endRoundStatePercent = roundStates.GroupBy(x => x.EndRoundState)
             .Select(x => new KeyValuePair<EndRoundState, double>(x.Key, x.Count() / (double)roundStates.Count))

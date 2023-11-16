@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using Microsoft.Extensions.DependencyInjection;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Bases;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.PostRequests;

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using NBitcoin;
 using Newtonsoft.Json;
 using WabiSabiMonitor.ApplicationCore.Data;
@@ -19,18 +18,17 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
         _dataProcessor = dataProcessor;
     }
 
-    //?
     public void SaveToFileSystem()
     {
         File.WriteAllText(_path,
             JsonConvert.SerializeObject(_dataProcessor!.Rounds, JsonSerializationOptions.CurrentSettings));
     }
 
-    public Dictionary<uint256, Processor.ProcessedRound>? ReadFromFileSystem()
+    public Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem()
     {
         try
         {
-            return JsonConvert.DeserializeObject<Dictionary<uint256, Processor.ProcessedRound>>(
+            return JsonConvert.DeserializeObject<Dictionary<uint256, RoundDataReaderService.ProcessedRound>>(
                 File.ReadAllText(_path), JsonSerializationOptions.CurrentSettings);
         }
         catch (Exception ex)

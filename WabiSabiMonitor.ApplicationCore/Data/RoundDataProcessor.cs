@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using WabiSabiMonitor.ApplicationCore.Interfaces;
+﻿using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;

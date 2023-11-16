@@ -1,6 +1,5 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using NBitcoin;
-using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Affiliation.Models;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
@@ -16,7 +15,7 @@ public class RoundDataReaderService : BackgroundService
     {
         Rounds = savedRounds;
     }
-    
+
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         while (await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(token) || !token.IsCancellationRequested)
@@ -29,9 +28,9 @@ public class RoundDataReaderService : BackgroundService
                 {
                     Rounds.Add(round.Id,
                         new ProcessedRound(
-                            data.ScrapedAt, 
-                            round, 
-                            data.Rounds.AffiliateInformation, 
+                            data.ScrapedAt,
+                            round,
+                            data.Rounds.AffiliateInformation,
                             data.Rounds.CoinJoinFeeRateMedians));
                     continue;
                 }

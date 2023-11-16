@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using NBitcoin;
+﻿using NBitcoin;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
@@ -8,10 +7,10 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 
 public class RoundsDataFilter : IRoundsDataFilter
 {
-    private readonly RoundDataProcessor _roundDataProcessor;
+    private readonly IRoundDataProcessor _roundDataProcessor;
     private readonly RoundDataReaderService _roundDataReaderService;
 
-    public RoundsDataFilter( RoundDataProcessor roundDataProcessor, RoundDataReaderService roundDataReaderService)
+    public RoundsDataFilter( IRoundDataProcessor roundDataProcessor, RoundDataReaderService roundDataReaderService)
     {
         _roundDataProcessor = roundDataProcessor;
         _roundDataReaderService = roundDataReaderService;
