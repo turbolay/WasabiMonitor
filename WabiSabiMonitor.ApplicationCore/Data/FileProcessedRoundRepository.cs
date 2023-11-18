@@ -9,19 +9,17 @@ namespace WabiSabiMonitor.ApplicationCore;
 public class FileProcessedRoundRepository : IProcessedRoundRepository
 {
     private readonly string _path;
-    private RoundDataReaderService _dataProcessor;
 
     //  path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
-    public FileProcessedRoundRepository(string path, RoundDataReaderService dataProcessor)
+    public FileProcessedRoundRepository(string path)
     {
         _path = path;
-        _dataProcessor = dataProcessor;
     }
 
-    public void SaveToFileSystem()
+    public void SaveToFileSystem(Dictionary<uint256, RoundDataReaderService.ProcessedRound> data)
     {
         File.WriteAllText(_path,
-            JsonConvert.SerializeObject(_dataProcessor!.Rounds, JsonSerializationOptions.CurrentSettings));
+            JsonConvert.SerializeObject(data, JsonSerializationOptions.CurrentSettings));
     }
 
     public Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem()

@@ -1,10 +1,11 @@
 ﻿using System.Net;
+using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Logging;
 using WabiSabiMonitor.ApplicationCore.Utils.Rpc;
 
 namespace WabiSabiMonitor.ApplicationCore;
 
-public class RpcServerController
+public class RpcServerController : IRpcServerController
 {
     private readonly JsonRpcServer _rpcServer;
     private readonly JsonRpcServerConfiguration _jsonRpcServerConfiguration;

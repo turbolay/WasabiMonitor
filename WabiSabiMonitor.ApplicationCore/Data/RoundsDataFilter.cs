@@ -8,9 +8,9 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 public class RoundsDataFilter : IRoundsDataFilter
 {
     private readonly IRoundDataProcessor _roundDataProcessor;
-    private readonly RoundDataReaderService _roundDataReaderService;
+    private readonly IRoundDataReaderService _roundDataReaderService;
 
-    public RoundsDataFilter( IRoundDataProcessor roundDataProcessor, RoundDataReaderService roundDataReaderService)
+    public RoundsDataFilter( IRoundDataProcessor roundDataProcessor, IRoundDataReaderService roundDataReaderService)
     {
         _roundDataProcessor = roundDataProcessor;
         _roundDataReaderService = roundDataReaderService;

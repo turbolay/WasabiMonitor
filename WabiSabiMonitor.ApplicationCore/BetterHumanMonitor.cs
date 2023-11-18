@@ -7,15 +7,15 @@ using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.ApplicationCore;
 
-public class BetterHumanMonitor
+public class BetterHumanMonitor : IBetterHumanMonitor
 {
     private readonly IRoundsDataFilter _roundDataFilter;
     private readonly IRoundDataProcessor _roundDataProcessor;
     private readonly IAnalyzer _analyzer;
-    private readonly RoundDataReaderService _roundDataReaderService;
+    private readonly IRoundDataReaderService _roundDataReaderService;
 
     public BetterHumanMonitor(IRoundsDataFilter roundDataFilter, IRoundDataProcessor roundDataProcessor,
-        IAnalyzer analyzer, RoundDataReaderService roundDataReaderService)
+        IAnalyzer analyzer, IRoundDataReaderService roundDataReaderService)
     {
         _roundDataFilter = roundDataFilter;
         _roundDataProcessor = roundDataProcessor;

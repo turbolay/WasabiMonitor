@@ -19,31 +19,28 @@ namespace WabiSabiMonitor;
 public static partial class Program
 {
     private static object LockClosure { get; } = new();
-    private static CancellationTokenSource CancellationTokenSource;
-    private static IServiceProvider ServiceProvider;
+    private static readonly CancellationTokenSource CancellationTokenSource = new();
 
     public static async Task Main(string[] args)
     {
-        CancellationTokenSource = new CancellationTokenSource();
-
         HandleClosure();
 
         var host = CreateHostBuilder(args).Build();
-
-        ServiceProvider = host.Services;
         var applicationCore = host.Services.GetRequiredService<ApplicationCore.ApplicationCore>();
 
         try
         {
-            await applicationCore.Run();
+            await applicationCore.Run(CancellationTokenSource.Token);
         }
         catch (Exception ex)
         {
-            Logger.LogInfo(ex);
+            Logger.LogCritical(ex);
         }
         finally
         {
-            await TerminateApplicationAsync();
+            await TerminateApplicationAsync(host.Services.GetRequiredService<IProcessedRoundRepository>(),
+                host.Services.GetRequiredService<IRoundDataReaderService>(),
+                host.Services.GetRequiredService<JsonRpcServer>());
         }
     }
 
@@ -60,49 +57,57 @@ public static partial class Program
             config.JsonRpcPassword, config.JsonRpcServerPrefixes);
 
         services
-            .AddHttpClient<ClearnetHttpClient>()
+            .AddHttpClient<IHttpClient, ClearnetHttpClient>()
             .ConfigureHttpClient(c => c.BaseAddress = config.GetCoordinatorUri());
 
         services.AddSingleton<IRoundDataProcessor, RoundDataProcessor>()
             .AddSingleton<IRoundsDataFilter, RoundsDataFilter>()
             .AddSingleton<IAnalyzer, Analyzer>()
             .AddSingleton<IWabiSabiApiRequestHandlerAdapter, WabiSabiApiRequestHandlerAdapter>()
-            .AddSingleton<BetterHumanMonitor>()
+            .AddSingleton<IBetterHumanMonitor, BetterHumanMonitor>()
             .AddSingleton<Scraper>()
             .AddSingleton<PersistentConfig>()
-            .AddSingleton<RoundDataReaderService>()
-            .AddSingleton<Config>(config)
-            //need change
-            .AddSingleton(new Dictionary<uint256, RoundDataReaderService.ProcessedRound>())
-            .AddSingleton<JsonRpcServerConfiguration>(jsonRpcServerConfig)
-            .AddSingleton<FileProcessedRoundRepository>(sp =>
+            .AddSingleton<IRoundDataReaderService, RoundDataReaderService>(sp =>
             {
-                var roundDataReaderService = sp.GetRequiredService<RoundDataReaderService>();
-
-                return new FileProcessedRoundRepository(repositoryPath, roundDataReaderService);
+                var fileProcessedRoundRepository = sp.GetRequiredService<IProcessedRoundRepository>();
+                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ??
+                                 new Dictionary<uint256, RoundDataReaderService.ProcessedRound>();
+                return new RoundDataReaderService(roundsInfo,  sp.GetRequiredService<Scraper>());
             })
-            .AddSingleton<WabiSabiHttpApiClient>(sp =>
+            .AddSingleton<Config>(config)
+            .AddSingleton<JsonRpcServerConfiguration>(jsonRpcServerConfig)
+            .AddSingleton<IProcessedRoundRepository, FileProcessedRoundRepository>(sp => new FileProcessedRoundRepository(repositoryPath))
+            .AddSingleton<IWabiSabiApiRequestHandler, WabiSabiHttpApiClient>(sp =>
             {
                 var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 var client = clientFactory.CreateClient();
-                
+
                 client.BaseAddress = config.GetCoordinatorUri();
 
                 return new WabiSabiHttpApiClient(new ClearnetHttpClient(client));
+            })
+            .AddSingleton<IWabiSabiApiRequestHandlerAdapter, WabiSabiApiRequestHandlerAdapter>(sp =>
+            {
+                var handler = sp.GetRequiredService<IWabiSabiApiRequestHandler>();
+                return new WabiSabiApiRequestHandlerAdapter((WabiSabiHttpApiClient)handler);
             })
             .AddSingleton<JsonRpcServer>((sp) =>
             {
                 var roundDataFilter = sp.GetRequiredService<IRoundsDataFilter>();
                 var analyzer = sp.GetRequiredService<IAnalyzer>();
-                var betterHumanMonitor = sp.GetRequiredService<BetterHumanMonitor>();
+                var betterHumanMonitor = sp.GetRequiredService<IBetterHumanMonitor>();
 
                 return new JsonRpcServer(
                     new WabiSabiMonitorRpc(roundDataFilter, analyzer, betterHumanMonitor),
                     jsonRpcServerConfig,
-                    new TerminateService(TerminateApplicationAsync, () => { })
+                    new TerminateService(() =>
+                            TerminateApplicationAsync(
+                                sp.GetRequiredService<IProcessedRoundRepository>(),
+                                sp.GetRequiredService<IRoundDataReaderService>(),
+                                sp.GetRequiredService<JsonRpcServer>()), () => { })
                 );
             })
-            .AddSingleton<RpcServerController>(sp =>
+            .AddSingleton<IRpcServerController, RpcServerController>(sp =>
             {
                 var jsonRpcServer = sp.GetRequiredService<JsonRpcServer>();
                 var jsonRpcServerConfiguration = sp.GetRequiredService<JsonRpcServerConfiguration>();
@@ -110,37 +115,16 @@ public static partial class Program
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
             .AddSingleton<ApplicationCore.ApplicationCore>();
-
-        ConfigureClients(services, config);
     }
 
-
-    private static void ConfigureClients(IServiceCollection services, Config config)
-    {
-        services.AddHttpClient()
-            .AddSingleton<IHttpClient, ClearnetHttpClient>();
-
-        services.AddSingleton<IWabiSabiApiRequestHandler>(sp =>
-        {
-            var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
-            var client = clientFactory.CreateClient();
-
-            client.BaseAddress = config.GetCoordinatorUri();
-
-            return new WabiSabiHttpApiClient(new ClearnetHttpClient(client));
-        });
-    }
-
-    private static Task TerminateApplicationAsync()
+    private static Task TerminateApplicationAsync(IProcessedRoundRepository fileProcessedRoundRepository,
+        IRoundDataReaderService roundDataReaderService, JsonRpcServer jsonRpcServer)
     {
         Logger.LogInfo("Closing.");
 
-        var repository = ServiceProvider.GetRequiredService<FileProcessedRoundRepository>();
+        fileProcessedRoundRepository?.SaveToFileSystem(roundDataReaderService!.Rounds);
 
-        repository?.SaveToFileSystem();
-
-        var rpcServer = ServiceProvider.GetRequiredService<JsonRpcServer>();
-        rpcServer?.Dispose();
+        jsonRpcServer?.Dispose();
 
         return Task.CompletedTask;
     }

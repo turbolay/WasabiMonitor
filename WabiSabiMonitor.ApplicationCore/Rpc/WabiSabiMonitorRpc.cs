@@ -11,9 +11,9 @@ public class WabiSabiMonitorRpc : IJsonRpcService
 {
     private readonly IRoundsDataFilter _filter;
     private readonly IAnalyzer _analyzer;
-    private readonly BetterHumanMonitor _betterHumanMonitor;
+    private readonly IBetterHumanMonitor _betterHumanMonitor;
 
-    public WabiSabiMonitorRpc(IRoundsDataFilter filter, IAnalyzer analyzer, BetterHumanMonitor betterHumanMonitor)
+    public WabiSabiMonitorRpc(IRoundsDataFilter filter, IAnalyzer analyzer, IBetterHumanMonitor betterHumanMonitor)
     {
         _filter = filter;
         _analyzer = analyzer;

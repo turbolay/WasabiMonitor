@@ -1,4 +1,5 @@
 using NBitcoin;
+using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models.MultipartyTransaction;
@@ -79,7 +80,7 @@ public static class RoundStateExtensions
 
     // This function is special: It is the only one why we need human monitor:
     // it contains this extra info during InputsRegistrationPhase.
-    public static uint GetInputsCount(this RoundState roundState, RoundDataReaderService roundDataReaderService)
+    public static uint GetInputsCount(this RoundState roundState, IRoundDataReaderService roundDataReaderService)
     {
         uint count;
         var hmInfosForRound =

@@ -5,6 +5,6 @@ namespace WabiSabiMonitor.ApplicationCore.Interfaces;
 
 public interface IProcessedRoundRepository
 {
-    void SaveToFileSystem();
+    void SaveToFileSystem(Dictionary<uint256, RoundDataReaderService.ProcessedRound> data);
     Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem();
 }

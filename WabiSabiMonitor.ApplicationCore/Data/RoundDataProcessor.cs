@@ -5,9 +5,9 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 
 public class RoundDataProcessor : IRoundDataProcessor
 {
-    private readonly RoundDataReaderService _roundDataReader;
+    private readonly IRoundDataReaderService _roundDataReader;
 
-    public RoundDataProcessor(RoundDataReaderService roundDataReaderService)
+    public RoundDataProcessor(IRoundDataReaderService roundDataReaderService)
     {
         _roundDataReader = roundDataReaderService;
     }

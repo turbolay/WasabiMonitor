@@ -1,26 +1,29 @@
 using Microsoft.Extensions.Hosting;
 using NBitcoin;
+using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Affiliation.Models;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;
 
-public class RoundDataReaderService : BackgroundService
+public class RoundDataReaderService : BackgroundService, IRoundDataReaderService
 {
+    private readonly Scraper _scraper;
     public Dictionary<uint256, ProcessedRound> Rounds { get; }
     public HumanMonitorResponse? LastHumanMonitor { get; private set; }
 
-    public RoundDataReaderService(Dictionary<uint256, ProcessedRound> savedRounds)
+    public RoundDataReaderService(Dictionary<uint256, ProcessedRound> savedRounds, Scraper scraper)
     {
         Rounds = savedRounds;
+        _scraper = scraper;
     }
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
-        while (await Scraper.ToBeProcessedData.Reader.WaitToReadAsync(token) || !token.IsCancellationRequested)
+        while (await _scraper.ToBeProcessedData.Reader.WaitToReadAsync(token) || !token.IsCancellationRequested)
         {
-            var data = await Scraper.ToBeProcessedData.Reader.ReadAsync(token);
+            var data = await _scraper.ToBeProcessedData.Reader.ReadAsync(token);
 
             foreach (var round in data.Rounds.RoundStates)
             {

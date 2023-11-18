@@ -8,10 +8,10 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 
 public class Analyzer : IAnalyzer
 {
-    private readonly RoundDataReaderService _roundDataReaderService;
+    private readonly IRoundDataReaderService _roundDataReaderService;
     private readonly IRoundsDataFilter _roundsDataFilter;
 
-    public Analyzer(RoundDataReaderService roundDataReaderService, IRoundsDataFilter roundsDataFilter)
+    public Analyzer(IRoundDataReaderService roundDataReaderService, IRoundsDataFilter roundsDataFilter)
     {
         _roundDataReaderService = roundDataReaderService;
         _roundsDataFilter = roundsDataFilter;
