@@ -22,7 +22,8 @@ public class RpcServerController : IRpcServerController
         {
             try
             {
-                await _rpcServer.StartAsync(cancel)
+                await _rpcServer
+                    .StartAsync(cancel)
                     .ConfigureAwait(false);
             }
             catch (HttpListenerException e)

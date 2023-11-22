@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using WabiSabiMonitor.ApplicationCore.Adapters;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Bases;
 using WabiSabiMonitor.ApplicationCore.Utils.Logging;

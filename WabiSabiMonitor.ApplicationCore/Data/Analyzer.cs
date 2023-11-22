@@ -29,23 +29,15 @@ public class Analyzer : IAnalyzer
         var intervalDuration = intervalEnd - intervalStart;
         var successes = roundStates.Where(x => x.IsSuccess()).ToList();
 
-        double inputsPerHour =
-            Math.Round(successes.Sum(x => x.GetInputsCount(_roundDataReaderService)) / intervalDuration.TotalHours, 2);
-        decimal btcPerHour =
-            Math.Round(
-                successes.Sum(x => x.GetTotalInputsAmount().ToUnit(MoneyUnit.BTC)) /
-                (decimal)intervalDuration.TotalHours, 2);
-        double blameRoundsPerHour =
-            Math.Round(roundStates.Sum(x => x.IsBlame() ? 1 : 0) / intervalDuration.TotalHours, 1);
-        double estimatedNbOfBanPerHour =
-            roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
+        double inputsPerHour = Math.Round(successes.Sum(x => x.GetInputsCount(_roundDataReaderService)) / intervalDuration.TotalHours, 2);
+        decimal btcPerHour = Math.Round(successes.Sum(x => x.GetTotalInputsAmount().ToUnit(MoneyUnit.BTC)) / (decimal)intervalDuration.TotalHours, 2);
+        double blameRoundsPerHour = Math.Round(roundStates.Sum(x => x.IsBlame() ? 1 : 0) / intervalDuration.TotalHours, 1);
+        double estimatedNbOfBanPerHour = roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
         decimal averageFeeRate = Math.Round(successes.Average(x => x.GetFeeRate().SatoshiPerByte));
-        decimal nbOutputPerInput =
-            Math.Round(
-                (decimal)successes.Sum(x => x.GetOutputsCount()) /
-                (decimal)successes.Sum(x => x.GetInputsCount(_roundDataReaderService)), 2);
+        decimal nbOutputPerInput = Math.Round((decimal)successes.Sum(x => x.GetOutputsCount()) / successes.Sum(x => x.GetInputsCount(_roundDataReaderService)), 2);
 
-        var endRoundStatePercent = roundStates.GroupBy(x => x.EndRoundState)
+        var endRoundStatePercent = roundStates
+            .GroupBy(x => x.EndRoundState)
             .Select(x => new KeyValuePair<EndRoundState, double>(x.Key, x.Count() / (double)roundStates.Count))
             .ToDictionary(toAdd => toAdd.Key, toAdd => Math.Round(toAdd.Value * 100, 2));
 
@@ -58,29 +50,40 @@ public class Analyzer : IAnalyzer
 
         var nbRounds = (decimal)successes.Count();
 
-        var inputsAnonSetFirstQuartile =
-            Math.Round(inputsAnonSet.Values.Where(x => x != 1).FirstQuartile() / nbRounds, 2);
+        var inputsAnonSetFirstQuartile = Math.Round(inputsAnonSet.Values.Where(x => x != 1).FirstQuartile() / nbRounds, 2);
         var inputsNbChange = Math.Round(inputsAnonSet.Count(x => x.Value == 1) / nbRounds, 2);
-        var inputsMedianWithoutChange =
-            Math.Round(inputsAnonSet.Where(x => x.Value != 1).Select(x => x.Value).Median() / nbRounds, 2);
-        var inputsAnonSetTop = inputsAnonSet.OrderByDescending(x => x.Value).Take(3)
+        var inputsMedianWithoutChange = Math.Round(inputsAnonSet.Where(x => x.Value != 1).Select(x => x.Value).Median() / nbRounds, 2);
+        var inputsAnonSetTop = inputsAnonSet.
+            OrderByDescending(x => x.Value)
+            .Take(3)
             .ToDictionary(x => x.Key, x => Math.Round(x.Value / nbRounds, 2));
-        var inputAnonSetAnalysis = new AnonSetAnalysisPerRound(inputsMedianWithoutChange, inputsAnonSetFirstQuartile,
-            inputsNbChange, inputsAnonSetTop);
+        
+        var inputAnonSetAnalysis = new AnonSetAnalysisPerRound(inputsMedianWithoutChange, inputsAnonSetFirstQuartile, inputsNbChange, inputsAnonSetTop);
 
-        var outputsAnonSetFirstQuartile =
-            Math.Round(outputsAnonSet.Values.Where(x => x != 1).FirstQuartile() / nbRounds, 2);
+        var outputsAnonSetFirstQuartile = Math.Round(outputsAnonSet.Values.Where(x => x != 1).FirstQuartile() / nbRounds, 2);
         var outputsNbChange = Math.Round(outputsAnonSet.Count(x => x.Value == 1) / nbRounds, 2);
-        var outputsMedianWithoutChange =
-            Math.Round(outputsAnonSet.Where(x => x.Value != 1).Select(x => x.Value).Median() / nbRounds, 2);
-        var outputsAnonSetTop = outputsAnonSet.OrderByDescending(x => x.Value).Take(3)
-            .ToDictionary(x => x.Key, x => Math.Round(x.Value / nbRounds, 2));
-        var outputsAnonSetAnalysis = new AnonSetAnalysisPerRound(outputsMedianWithoutChange,
-            outputsAnonSetFirstQuartile, outputsNbChange, outputsAnonSetTop);
+        var outputsMedianWithoutChange = Math.Round(outputsAnonSet.Where(x => x.Value != 1).Select(x => x.Value).Median() / nbRounds, 2);
+        var outputsAnonSetTop = outputsAnonSet
+            .OrderByDescending(x => x.Value)
+            .Take(3)
+            .ToDictionary(
+                x => x.Key,
+                x => Math.Round(x.Value / nbRounds, 2));
+        
+        var outputsAnonSetAnalysis = new AnonSetAnalysisPerRound(outputsMedianWithoutChange, outputsAnonSetFirstQuartile, outputsNbChange, outputsAnonSetTop);
 
-        return new Analysis(intervalStart, intervalEnd, inputsPerHour, btcPerHour, blameRoundsPerHour,
+        return new Analysis(
+            intervalStart, 
+            intervalEnd,
+            inputsPerHour,
+            btcPerHour,
+            blameRoundsPerHour,
             estimatedNbOfBanPerHour,
-            averageFeeRate, nbOutputPerInput, endRoundStatePercent, inputAnonSetAnalysis, outputsAnonSetAnalysis);
+            averageFeeRate,
+            nbOutputPerInput,
+            endRoundStatePercent,
+            inputAnonSetAnalysis,
+            outputsAnonSetAnalysis);
     }
 
     private static void InitOutputAnonSet(List<RoundState> successes, Dictionary<decimal, uint> outputsAnonSet)
@@ -119,12 +122,17 @@ public class Analyzer : IAnalyzer
         }
     }
 
-    public record AnonSetAnalysisPerRound(decimal MedianWithoutChange, decimal FirstQuartileWithoutChange,
-        decimal NbChange, Dictionary<decimal, decimal> Top);
+    public record AnonSetAnalysisPerRound(decimal MedianWithoutChange, decimal FirstQuartileWithoutChange, decimal NbChange, Dictionary<decimal, decimal> Top);
 
-    public record Analysis(DateTimeOffset StartTime, DateTimeOffset EndTime, double InputsPerHour, decimal BtcPerHour,
+    public record Analysis(DateTimeOffset StartTime, 
+        DateTimeOffset EndTime,
+        double InputsPerHour,
+        decimal BtcPerHour,
         double BlameRoundsPerHour,
-        double EstimatedNbOfBanPerHour, decimal AverageFeeRate, decimal NbOutputPerInput,
-        Dictionary<EndRoundState, double> EndRoundStatePercent, AnonSetAnalysisPerRound InputsAnonSetPerRound,
+        double EstimatedNbOfBanPerHour,
+        decimal AverageFeeRate,
+        decimal NbOutputPerInput,
+        Dictionary<EndRoundState, double> EndRoundStatePercent,
+        AnonSetAnalysisPerRound InputsAnonSetPerRound,
         AnonSetAnalysisPerRound OutputsAnonSetPerRound);
 }

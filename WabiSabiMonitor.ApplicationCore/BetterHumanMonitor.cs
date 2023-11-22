@@ -39,9 +39,19 @@ public class BetterHumanMonitor : IBetterHumanMonitor
             var outputsAnonSet = round.GetOutputsAnonSet();
             var feeRate = round.GetFeeRate();
             var currentFeesConditions = _roundDataProcessor.GetCurrentFeesConditions();
-            return new(round.Id, blame, currentPhase.FriendlyName(), round.EndRoundState.FriendlyName(), inputsCount,
-                confirmedInputsCount, outputsCount, signaturesCount, inputsAnonSet,
-                outputsAnonSet, feeRate, currentFeesConditions);
+           
+            return new(round.Id,
+                blame,
+                currentPhase.FriendlyName(),
+                round.EndRoundState.FriendlyName(),
+                inputsCount,
+                confirmedInputsCount,
+                outputsCount,
+                signaturesCount,
+                inputsAnonSet,
+                outputsAnonSet,
+                feeRate,
+                currentFeesConditions);
         }
 
         var allRoundsInInterval = _roundDataFilter.GetRoundsInInterval(start, end);
@@ -52,8 +62,7 @@ public class BetterHumanMonitor : IBetterHumanMonitor
             result.CurrentRounds.Add(CreateBetterHumanMonitorRound(current));
         }
 
-        var lastPeriodRounds = allRoundsInInterval
-            .Where(x => !currentRounds.Select(y => y.Id).Contains(x.Id)).ToList();
+        var lastPeriodRounds = allRoundsInInterval.Where(x => !currentRounds.Select(y => y.Id).Contains(x.Id)).ToList();
 
         foreach (var lastPeriodRound in lastPeriodRounds)
         {

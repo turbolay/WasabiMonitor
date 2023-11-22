@@ -29,7 +29,8 @@ public class RoundDataReaderService : BackgroundService, IRoundDataReaderService
             {
                 if (!Rounds.TryGetValue(round.Id, out var oldInstance))
                 {
-                    Rounds.Add(round.Id,
+                    Rounds.Add(
+                        round.Id,
                         new ProcessedRound(
                             data.ScrapedAt,
                             round,

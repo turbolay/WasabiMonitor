@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using NBitcoin;
 using WabiSabiMonitor.ApplicationCore;
+using WabiSabiMonitor.ApplicationCore.Adapters;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Rpc;
@@ -13,10 +14,11 @@ using WabiSabiMonitor.ApplicationCore.Utils.Services.Terminate;
 using WabiSabiMonitor.ApplicationCore.Utils.Tor.Http;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.PostRequests;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Client;
+// ReSharper disable InconsistentlySynchronizedField
 
 namespace WabiSabiMonitor;
 
-public static partial class Program
+public static class Program
 {
     private static object LockClosure { get; } = new();
     private static readonly CancellationTokenSource CancellationTokenSource = new();
@@ -34,27 +36,29 @@ public static partial class Program
         }
         catch (Exception ex)
         {
-            Logger.LogCritical(ex);
+            if (!CancellationTokenSource.Token.IsCancellationRequested)
+            {
+                Logger.LogCritical(ex);
+            }
         }
         finally
         {
-            await TerminateApplicationAsync(host.Services.GetRequiredService<IProcessedRoundRepository>(),
+            await TerminateApplicationAsync(
+                host.Services.GetRequiredService<IProcessedRoundRepository>(),
                 host.Services.GetRequiredService<IRoundDataReaderService>(),
                 host.Services.GetRequiredService<JsonRpcServer>());
         }
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
             .ConfigureServices((_, services) => ConfigureServices(services));
 
     public static void ConfigureServices(IServiceCollection services)
     {
-        var repositoryPath =
-            Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
+        var repositoryPath = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
         var config = new Config(LoadOrCreateConfigs(), Array.Empty<string>());
-        var jsonRpcServerConfig = new JsonRpcServerConfiguration(true, config!.JsonRpcUser,
-            config.JsonRpcPassword, config.JsonRpcServerPrefixes);
+        var jsonRpcServerConfig = new JsonRpcServerConfiguration(true, config.JsonRpcUser, config.JsonRpcPassword, config.JsonRpcServerPrefixes);
 
         services
             .AddHttpClient<IHttpClient, ClearnetHttpClient>()
@@ -70,13 +74,13 @@ public static partial class Program
             .AddSingleton<IRoundDataReaderService, RoundDataReaderService>(sp =>
             {
                 var fileProcessedRoundRepository = sp.GetRequiredService<IProcessedRoundRepository>();
-                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ??
+                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ?? 
                                  new Dictionary<uint256, RoundDataReaderService.ProcessedRound>();
                 return new RoundDataReaderService(roundsInfo,  sp.GetRequiredService<Scraper>());
             })
-            .AddSingleton<Config>(config)
-            .AddSingleton<JsonRpcServerConfiguration>(jsonRpcServerConfig)
-            .AddSingleton<IProcessedRoundRepository, FileProcessedRoundRepository>(sp => new FileProcessedRoundRepository(repositoryPath))
+            .AddSingleton(config)
+            .AddSingleton(jsonRpcServerConfig)
+            .AddSingleton<IProcessedRoundRepository, FileProcessedRoundRepository>(_ => new FileProcessedRoundRepository(repositoryPath))
             .AddSingleton<IWabiSabiApiRequestHandler, WabiSabiHttpApiClient>(sp =>
             {
                 var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -122,16 +126,16 @@ public static partial class Program
     {
         Logger.LogInfo("Closing.");
 
-        fileProcessedRoundRepository?.SaveToFileSystem(roundDataReaderService!.Rounds);
+        fileProcessedRoundRepository.SaveToFileSystem(roundDataReaderService.Rounds);
 
-        jsonRpcServer?.Dispose();
+        jsonRpcServer.Dispose();
 
         return Task.CompletedTask;
     }
 
     private static void HandleClosure()
     {
-        AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
             lock (LockClosure)
             {
@@ -142,7 +146,7 @@ public static partial class Program
             }
         };
 
-        Console.CancelKeyPress += (sender, e) =>
+        Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true; // Prevent the default Ctrl+C behavior
             lock (LockClosure)

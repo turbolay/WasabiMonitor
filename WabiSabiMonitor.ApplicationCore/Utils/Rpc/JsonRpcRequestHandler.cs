@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WabiSabiMonitor.ApplicationCore.Utils.Extensions;
 using WabiSabiMonitor.ApplicationCore.Utils.JsonConverters;
+using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models.Serialization;
 
 namespace WabiSabiMonitor.ApplicationCore.Utils.Rpc;
 
@@ -14,18 +15,7 @@ namespace WabiSabiMonitor.ApplicationCore.Utils.Rpc;
 public class JsonRpcRequestHandler<TService>
 	where TService : notnull
 {
-	private static readonly JsonSerializerSettings DefaultSettings = new()
-	{
-		NullValueHandling = NullValueHandling.Ignore,
-		ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-		Converters = new JsonConverter[]
-		{
-			new Uint256JsonConverter(),
-			new OutPointAsTxoRefJsonConverter(),
-			new BitcoinAddressJsonConverter()
-		}
-	};
-
+	private static readonly JsonSerializerSettings DefaultSettings = JsonSerializationOptions.Default.Settings;
 	private static readonly JsonSerializer DefaultSerializer = JsonSerializer.Create(DefaultSettings);
 
 	public JsonRpcRequestHandler(TService service)

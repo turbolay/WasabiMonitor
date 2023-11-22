@@ -31,7 +31,8 @@ public class RoundsDataFilter : IRoundsDataFilter
         GetRoundsStartedSince(DateTimeOffset.UtcNow - since, predicate);
 
     public List<RoundState> GetRoundsFinishedSince(DateTimeOffset since, Func<RoundState, bool>? predicate = null) =>
-        _roundDataProcessor.GetRounds(x => !x.IsOngoing() && (predicate?.Invoke(x) ?? true),
+        _roundDataProcessor.GetRounds(
+            x => !x.IsOngoing() && (predicate?.Invoke(x) ?? true),
             x => x.LastUpdate >= since);
 
     public uint GetNbBanEstimation( RoundState roundState)
@@ -43,6 +44,7 @@ public class RoundsDataFilter : IRoundsDataFilter
 
         var blameOf = GetRoundsStartedSince(TimeSpan.FromHours(1))
             .FirstOrDefault(x => x.BlameOf == roundState.Id);
+        
         if (blameOf is null)
         {
             return 0;

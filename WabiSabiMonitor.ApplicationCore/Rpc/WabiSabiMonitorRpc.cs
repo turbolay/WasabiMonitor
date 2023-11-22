@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Runtime.InteropServices.JavaScript;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Rpc.Models;
@@ -29,8 +31,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
     }
 
     [JsonRpcMethod("better-human-monitor")]
-    public BetterHumanMonitorModel GetBetterHumanMonitor() =>
-        _betterHumanMonitor.GetApiResponse();
+    public BetterHumanMonitorModel GetBetterHumanMonitor() => _betterHumanMonitor.GetApiResponse();
 
     [JsonRpcMethod("get-analysis")]
     public Analyzer.Analysis? GetAnalysis(string? startTime = null, string? endTime = null)
@@ -55,18 +56,24 @@ public class WabiSabiMonitorRpc : IJsonRpcService
     {
         DateTime startDateTime = default;
         DateTime endDateTime = default;
-        if (startTime != null && !DateTime.TryParse(startTime, out startDateTime))
+
+        string[] formats = { "yyyy-MM-ddTHH:mm:ssZ", "MM/dd/yyyy HH:mm:ss" };
+
+        if (startTime is not null && !DateTime.TryParseExact(startTime, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out startDateTime))
         {
-            throw new ArgumentException(
-                $"Couldn't parse start time: {startTime}. Suggested format: YYYY-MM-DDTHH:MM:SSZ");
+            throw new ArgumentException($"Couldn't parse start time: {startTime}. Suggested formats: {string.Join(", ", formats)}");
         }
 
-        if (endTime != null && !DateTime.TryParse(endTime, out endDateTime))
+        if (endTime is not null && !DateTime.TryParseExact(endTime, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDateTime))
         {
-            throw new ArgumentException(
-                $"Couldn't parse end time: {endTime}. Suggested format: YYYY-MM-DDTHH:MM:SSZ");
+            throw new ArgumentException($"Couldn't parse end time: {endTime}. Suggested formats: {string.Join(", ", formats)}");
         }
 
+        if (endTime is null)
+        {
+            endDateTime = DateTime.UtcNow;
+        }
+        
         return (startDateTime, endDateTime);
     }
 }

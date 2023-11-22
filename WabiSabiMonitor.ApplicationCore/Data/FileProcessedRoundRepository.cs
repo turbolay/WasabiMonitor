@@ -1,10 +1,9 @@
 using NBitcoin;
 using Newtonsoft.Json;
-using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models.Serialization;
 
-namespace WabiSabiMonitor.ApplicationCore;
+namespace WabiSabiMonitor.ApplicationCore.Data;
 
 public class FileProcessedRoundRepository : IProcessedRoundRepository
 {
@@ -18,8 +17,7 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
 
     public void SaveToFileSystem(Dictionary<uint256, RoundDataReaderService.ProcessedRound> data)
     {
-        File.WriteAllText(_path,
-            JsonConvert.SerializeObject(data, JsonSerializationOptions.CurrentSettings));
+        File.WriteAllText(_path, JsonConvert.SerializeObject(data, JsonSerializationOptions.CurrentSettings));
     }
 
     public Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem()

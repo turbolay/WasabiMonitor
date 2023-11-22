@@ -1,8 +1,7 @@
-﻿using WabiSabiMonitor.ApplicationCore.Interfaces;
-using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Client;
+﻿using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Client;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
 
-namespace WabiSabiMonitor.ApplicationCore.Data;
+namespace WabiSabiMonitor.ApplicationCore.Adapters;
 
 public class WabiSabiApiRequestHandlerAdapter : IWabiSabiApiRequestHandlerAdapter
 {

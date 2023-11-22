@@ -5,8 +5,7 @@ namespace WabiSabiMonitor.ApplicationCore.Interfaces;
 
 public interface IRoundsDataFilter
 {
-    List<RoundState> GetRoundsInInterval(DateTimeOffset? start, DateTimeOffset? end,
-        Func<RoundState, bool>? predicate = null);
+    List<RoundState> GetRoundsInInterval(DateTimeOffset? start, DateTimeOffset? end, Func<RoundState, bool>? predicate = null);
 
     List<RoundState> GetCurrentRounds();
 
