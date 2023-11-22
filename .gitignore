@@ -49,7 +49,12 @@ cmake-build-*/
 
 # File-based project format
 *.iws
-
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+.idea
 # IntelliJ
 out/
 
