@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Runtime.InteropServices.JavaScript;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Rpc.Models;
@@ -55,7 +54,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
     private static (DateTime, DateTime) ParseInterval(string? startTime, string? endTime)
     {
         DateTime startDateTime = default;
-        DateTime endDateTime = default;
+        DateTime endDateTime = DateTime.UtcNow;
 
         string[] formats = { "yyyy-MM-ddTHH:mm:ssZ", "MM/dd/yyyy HH:mm:ss" };
 
@@ -67,11 +66,6 @@ public class WabiSabiMonitorRpc : IJsonRpcService
         if (endTime is not null && !DateTime.TryParseExact(endTime, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDateTime))
         {
             throw new ArgumentException($"Couldn't parse end time: {endTime}. Suggested formats: {string.Join(", ", formats)}");
-        }
-
-        if (endTime is null)
-        {
-            endDateTime = DateTime.UtcNow;
         }
         
         return (startDateTime, endDateTime);
