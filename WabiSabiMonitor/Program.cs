@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
 using NBitcoin;
 using WabiSabiMonitor.ApplicationCore;
 using WabiSabiMonitor.ApplicationCore.Adapters;
@@ -119,6 +121,8 @@ public static class Program
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
             .AddSingleton<ApplicationCore.ApplicationCore>();
+        
+        services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
     }
 
     private static Task TerminateApplicationAsync(IProcessedRoundRepository fileProcessedRoundRepository,
