@@ -17,7 +17,18 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
 
     public void SaveToFileSystem(Dictionary<uint256, RoundDataReaderService.ProcessedRound> data)
     {
-        File.WriteAllText(_path, JsonConvert.SerializeObject(data, JsonSerializationOptions.CurrentSettings));
+        var backupPath = CreateBackup();
+
+        try
+        {
+            File.WriteAllText(_path, JsonConvert.SerializeObject(data, JsonSerializationOptions.CurrentSettings));
+            File.Delete(backupPath);
+        }
+        catch (Exception e)
+        {
+            RestoreFromBackup(backupPath);
+            throw;
+        }
     }
 
     public Dictionary<uint256, RoundDataReaderService.ProcessedRound>? ReadFromFileSystem()
@@ -29,7 +40,25 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
         }
         catch (Exception ex)
         {
-            return null;
+            return new Dictionary<uint256, RoundDataReaderService.ProcessedRound>();
         }
+    }
+
+    private void RestoreFromBackup(string backupPath)
+    {
+        File.Copy(backupPath, _path, true);
+        File.Delete(backupPath);
+    } 
+
+    private string CreateBackup()
+    {
+        var backupFileName = Path.GetFileNameWithoutExtension(_path);
+        var backupFileExtension = Path.GetExtension(_path);
+        var backupFolderName = Path.GetDirectoryName(_path);
+        var backupFilePath = backupFolderName + "\\" + backupFileName + "_backup" + backupFileExtension;
+
+        File.Copy(_path, backupFilePath, true);
+
+        return backupFilePath;
     }
 }

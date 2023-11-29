@@ -15,7 +15,7 @@ public class RoundDataReaderService : BackgroundService, IRoundDataReaderService
 
     public RoundDataReaderService(Dictionary<uint256, ProcessedRound> savedRounds, Scraper scraper)
     {
-        Rounds = savedRounds;
+        Rounds = FilteredRounds(savedRounds, -90);
         _scraper = scraper;
     }
 
@@ -51,6 +51,12 @@ public class RoundDataReaderService : BackgroundService, IRoundDataReaderService
 
             LastHumanMonitor = data.HumanMonitor;
         }
+    }
+
+    private Dictionary<uint256, ProcessedRound> FilteredRounds(Dictionary<uint256, ProcessedRound> rounds,int filterLengthDays)
+    {
+        return rounds.Where(x => x.Value.Round.InputRegistrationStart < DateTimeOffset.UtcNow.AddDays(filterLengthDays))
+            .ToDictionary(x => x.Key, x => x.Value);
     }
 
     public record ProcessedRound(DateTimeOffset LastUpdate, RoundState Round, AffiliateInformation Affiliates,
