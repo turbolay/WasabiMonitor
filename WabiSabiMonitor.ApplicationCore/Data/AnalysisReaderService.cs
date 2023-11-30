@@ -25,7 +25,8 @@ public class AnalysisReaderService : BackgroundService, IAnalysisReaderService
 
         do
         {
-            var startTime = DateTime.UtcNow - TimeSpan.FromHours(24);
+            var periodInH = TimeSpan.FromHours(4);
+            var startTime = DateTime.UtcNow - periodInH;
             var result = _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startTime, DateTime.UtcNow));
 
             if (result is not null)
