@@ -16,6 +16,7 @@ using WabiSabiMonitor.ApplicationCore.Utils.Services.Terminate;
 using WabiSabiMonitor.ApplicationCore.Utils.Tor.Http;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.PostRequests;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Client;
+
 // ReSharper disable InconsistentlySynchronizedField
 
 namespace WabiSabiMonitor;
@@ -58,9 +59,14 @@ public static class Program
 
     public static void ConfigureServices(IServiceCollection services)
     {
-        var repositoryPath = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
+        var roundRepositoryPath = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")),
+            "data.json");
+        var analysisRepositoryPath =
+            Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "analysis.json");
+
         var config = new Config(LoadOrCreateConfigs(), Array.Empty<string>());
-        var jsonRpcServerConfig = new JsonRpcServerConfiguration(true, config.JsonRpcUser, config.JsonRpcPassword, config.JsonRpcServerPrefixes);
+        var jsonRpcServerConfig = new JsonRpcServerConfiguration(true, config.JsonRpcUser, config.JsonRpcPassword,
+            config.JsonRpcServerPrefixes);
 
         services
             .AddHttpClient<IHttpClient, ClearnetHttpClient>()
@@ -73,16 +79,27 @@ public static class Program
             .AddSingleton<IBetterHumanMonitor, BetterHumanMonitor>()
             .AddSingleton<Scraper>()
             .AddSingleton<PersistentConfig>()
-            .AddSingleton<IRoundDataReaderService, RoundDataReaderService>(sp =>
+            .AddSingleton<IAnalysisReaderService>(sp =>
+            {
+                var fileAnalysisRepository = sp.GetRequiredService<IFileAnalysisRepository>();
+                var roundsDataFilter = sp.GetRequiredService<IRoundsDataFilter>();
+                var analyzer = sp.GetRequiredService<IAnalyzer>();
+                var timespan = TimeSpan.FromHours(12);
+                
+                return new AnalysisReaderService(roundsDataFilter, analyzer, timespan, fileAnalysisRepository);
+            })
+            //AnalysisReaderService
+            .AddSingleton<IRoundDataReaderService>(sp =>
             {
                 var fileProcessedRoundRepository = sp.GetRequiredService<IProcessedRoundRepository>();
-                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ?? 
+                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ??
                                  new Dictionary<uint256, RoundDataReaderService.ProcessedRound>();
-                return new RoundDataReaderService(roundsInfo,  sp.GetRequiredService<Scraper>());
+                return new RoundDataReaderService(roundsInfo, sp.GetRequiredService<Scraper>());
             })
             .AddSingleton(config)
             .AddSingleton(jsonRpcServerConfig)
-            .AddSingleton<IProcessedRoundRepository, FileProcessedRoundRepository>(_ => new FileProcessedRoundRepository(repositoryPath))
+            .AddSingleton<IFileAnalysisRepository>(_ => new FileAnalysisRepository(analysisRepositoryPath))
+            .AddSingleton<IProcessedRoundRepository>(_ => new FileProcessedRoundRepository(roundRepositoryPath))
             .AddSingleton<IWabiSabiApiRequestHandler, WabiSabiHttpApiClient>(sp =>
             {
                 var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -102,15 +119,17 @@ public static class Program
                 var roundDataFilter = sp.GetRequiredService<IRoundsDataFilter>();
                 var analyzer = sp.GetRequiredService<IAnalyzer>();
                 var betterHumanMonitor = sp.GetRequiredService<IBetterHumanMonitor>();
+                var fileAnalysisRepository = sp.GetRequiredService< IFileAnalysisRepository>();
+
 
                 return new JsonRpcServer(
-                    new WabiSabiMonitorRpc(roundDataFilter, analyzer, betterHumanMonitor),
+                    new WabiSabiMonitorRpc(roundDataFilter, analyzer, betterHumanMonitor,fileAnalysisRepository),
                     jsonRpcServerConfig,
                     new TerminateService(() =>
-                            TerminateApplicationAsync(
-                                sp.GetRequiredService<IProcessedRoundRepository>(),
-                                sp.GetRequiredService<IRoundDataReaderService>(),
-                                sp.GetRequiredService<JsonRpcServer>()), () => { })
+                        TerminateApplicationAsync(
+                            sp.GetRequiredService<IProcessedRoundRepository>(),
+                            sp.GetRequiredService<IRoundDataReaderService>(),
+                            sp.GetRequiredService<JsonRpcServer>()), () => { })
                 );
             })
             .AddSingleton<IRpcServerController, RpcServerController>(sp =>
@@ -121,7 +140,7 @@ public static class Program
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
             .AddSingleton<ApplicationCore.ApplicationCore>();
-        
+
         services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
     }
 

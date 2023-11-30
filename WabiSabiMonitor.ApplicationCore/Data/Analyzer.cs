@@ -24,25 +24,33 @@ public class Analyzer : IAnalyzer
             return null;
         }
 
+        decimal averageFeeRate = 0;
+        decimal nbOutputPerInput = 0;
         var interval = GetInterval(roundStates);
         var intervalDuration = (interval.End - interval.Start);
+        var inputsAnonSet = new Dictionary<decimal, uint>();
+        var outputsAnonSet = new Dictionary<decimal, uint>();
+        var inputAnonSetAnalysis = new AnonSetAnalysisPerRound();
+        var outputAnonSetAnalysis = new AnonSetAnalysisPerRound();
         var successes = roundStates.Where(x => x.IsSuccess()).ToList();
+
+        if (successes.Any())
+        {
+            InitInputAnonSet(successes, inputsAnonSet);
+            InitOutputAnonSet(successes, outputsAnonSet);
+            inputAnonSetAnalysis = CalculateAnonSetAnalysis(inputsAnonSet);
+            outputAnonSetAnalysis = CalculateAnonSetAnalysis(outputsAnonSet);
+            averageFeeRate = CalculateAverageFeeRate(successes);
+            nbOutputPerInput = CalculateNbOutputPerInput(successes);
+        }
 
         var inputsPerHour = CalculateInputsPerHour(successes, intervalDuration);
         var btcPerHour = CalculateBtcPerHour(successes, intervalDuration);
         var blameRoundsPerHour = CalculateBlameRoundsPerHour(roundStates, intervalDuration);
-        var averageFeeRate = CalculateAverageFeeRate(successes);
-        var nbOutputPerInput = CalculateNbOutputPerInput(successes);
         var endRoundStatePercent = CalculateEndRoundStatePercent(roundStates);
 
         double estimatedNbOfBanPerHour =
             roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
-
-        var inputsAnonSet = new Dictionary<decimal, uint>();
-        var outputsAnonSet = new Dictionary<decimal, uint>();
-
-        InitInputAnonSet(successes, inputsAnonSet);
-        InitOutputAnonSet(successes, outputsAnonSet);
 
         return new Analysis(
             interval.Start,
@@ -54,8 +62,8 @@ public class Analyzer : IAnalyzer
             averageFeeRate,
             nbOutputPerInput,
             endRoundStatePercent,
-            CalculateAnonSetAnalysis(inputsAnonSet),
-            CalculateAnonSetAnalysis(outputsAnonSet));
+            inputAnonSetAnalysis,
+            outputAnonSetAnalysis);
     }
 
     private AnonSetAnalysisPerRound CalculateAnonSetAnalysis(Dictionary<decimal, uint> anonSet)
@@ -158,8 +166,26 @@ public class Analyzer : IAnalyzer
         }
     }
 
-    public record AnonSetAnalysisPerRound(decimal MedianWithoutChange, decimal FirstQuartileWithoutChange,
-        decimal NbChange, Dictionary<decimal, uint> Top);
+    public record AnonSetAnalysisPerRound
+    {
+        public decimal MedianWithoutChange { get; init; }
+        public decimal FirstQuartileWithoutChange { get; init; }
+        public decimal NbChange { get; init; }
+        public Dictionary<decimal, uint> Top { get; init; }
+
+        public AnonSetAnalysisPerRound() : this(0.0M, 0.0M, 0.0M, new Dictionary<decimal, uint>())
+        {
+        }
+
+        public AnonSetAnalysisPerRound(decimal medianWithoutChange, decimal firstQuartileWithoutChange,
+            decimal nbChange, Dictionary<decimal, uint> top)
+        {
+            MedianWithoutChange = medianWithoutChange;
+            FirstQuartileWithoutChange = firstQuartileWithoutChange;
+            NbChange = nbChange;
+            Top = top ?? new Dictionary<decimal, uint>();
+        }
+    }
 
     public record Analysis(DateTimeOffset StartTime,
         DateTimeOffset EndTime,
