@@ -9,7 +9,6 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
 {
     private readonly string _path;
 
-    //  path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), "data.json");
     public FileProcessedRoundRepository(string path)
     {
         _path = path;

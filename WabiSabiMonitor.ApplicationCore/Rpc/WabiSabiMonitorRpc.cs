@@ -13,12 +13,15 @@ public class WabiSabiMonitorRpc : IJsonRpcService
     private readonly IRoundsDataFilter _filter;
     private readonly IAnalyzer _analyzer;
     private readonly IBetterHumanMonitor _betterHumanMonitor;
+    private readonly IFileAnalysisRepository _fileAnalysisRepository;
 
-    public WabiSabiMonitorRpc(IRoundsDataFilter filter, IAnalyzer analyzer, IBetterHumanMonitor betterHumanMonitor)
+    public WabiSabiMonitorRpc(IRoundsDataFilter filter, IAnalyzer analyzer, IBetterHumanMonitor betterHumanMonitor,
+        IFileAnalysisRepository fileAnalysisRepository)
     {
         _filter = filter;
         _analyzer = analyzer;
         _betterHumanMonitor = betterHumanMonitor;
+        _fileAnalysisRepository = fileAnalysisRepository;
     }
 
     [JsonRpcMethod("echo")]
@@ -36,9 +39,10 @@ public class WabiSabiMonitorRpc : IJsonRpcService
     public Analyzer.Analysis? GetAnalysis(string? startTime = null, string? endTime = null)
     {
         var (startDateTime, endDateTime) = ParseInterval(startTime, endTime);
+        
         if (startTime is null && endTime is null)
         {
-            startDateTime = DateTime.UtcNow - TimeSpan.FromHours(12);
+            return _fileAnalysisRepository.ReadFromFileSystem();
         }
 
         return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime));
@@ -58,16 +62,20 @@ public class WabiSabiMonitorRpc : IJsonRpcService
 
         string[] formats = { "yyyy-MM-ddTHH:mm:ssZ", "MM/dd/yyyy HH:mm:ss" };
 
-        if (startTime is not null && !DateTime.TryParseExact(startTime, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out startDateTime))
+        if (startTime is not null && !DateTime.TryParseExact(startTime, formats, CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out startDateTime))
         {
-            throw new ArgumentException($"Couldn't parse start time: {startTime}. Suggested formats: {string.Join(", ", formats)}");
+            throw new ArgumentException(
+                $"Couldn't parse start time: {startTime}. Suggested formats: {string.Join(", ", formats)}");
         }
 
-        if (endTime is not null && !DateTime.TryParseExact(endTime, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDateTime))
+        if (endTime is not null && !DateTime.TryParseExact(endTime, formats, CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out endDateTime))
         {
-            throw new ArgumentException($"Couldn't parse end time: {endTime}. Suggested formats: {string.Join(", ", formats)}");
+            throw new ArgumentException(
+                $"Couldn't parse end time: {endTime}. Suggested formats: {string.Join(", ", formats)}");
         }
-        
+
         return (startDateTime, endDateTime);
     }
 }
