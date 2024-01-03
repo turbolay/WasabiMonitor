@@ -1,4 +1,6 @@
-﻿using WabiSabiMonitor.ApplicationCore.Data;
+﻿using NBitcoin;
+using Newtonsoft.Json;
+using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Logging;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
@@ -28,12 +30,42 @@ public class ApplicationCore
         _dataProcessor = dataProcessor;
     }
 
+    private async Task<Dictionary<uint256, DateTime>> GetConfirmationTime(List<uint256> rounds)
+    {
+        var result = new Dictionary<uint256, DateTime>();
+        /* TODO: TEST, FIX, FINISH
+        var client = new HttpClient();
+        foreach (var txid in rounds)
+        {
+            var url = $"https://mempool.space/api/tx/{txid}/status";
+            try
+            {
+                await Task.Delay(1000);
+                var responseBody = await client.GetStringAsync(url);
+                var json = JsonConvert.DeserializeObject(responseBody);
+                result.Add(txid, new DateTime(responseBody["block_time"]);
+            }
+            catch (Exception e)
+            {
+                // Exception suppression
+            }
+        }*/
+        return result;
+    }
+
     public async Task Run(CancellationToken cancellationToken)
     {
         Logger.InitializeDefaults("./logs.txt");
 
         var rounds = _dataReader.Rounds;
 
+        // TODO: RESTORE CONFIRMATION TIME
+        
+        // TODO: POPULATE MISSING CONFIRMATION TIME
+        await GetConfirmationTime(rounds.Where(x => x.Value.Round.IsSuccess()).Select(x => x.Key).ToList());
+        
+        // TODO: SAVE CONFIRMATION TIME
+        
         var bigRoundsWithProblematicFailures = rounds.Values
             .Select(x => x.Round)
             .Where(x =>
@@ -47,8 +79,8 @@ public class ApplicationCore
         
         var bigRoundsNpInputs = bigRoundsSucceed.Average(x => x.GetInputsCount());
         var bigRoundsAvgAnonScore = bigRoundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
-        var bigRoundsAvgFreshSuccessRate = bigRoundsSucceed.Count(x => !x.IsBlame()) / bigRoundsWithProblematicFailures.Count(x => !x.IsBlame());
-        var bigRoundsAvgBlameSuccessRate = bigRoundsSucceed.Count(x => x.IsBlame()) / bigRoundsWithProblematicFailures.Count(x => x.IsBlame());
+        var bigRoundsAvgFreshSuccessRate = (double)bigRoundsSucceed.Count(x => !x.IsBlame()) / bigRoundsWithProblematicFailures.Count(x => !x.IsBlame());
+        var bigRoundsAvgBlameSuccessRate = (double)bigRoundsSucceed.Count(x => x.IsBlame()) / bigRoundsWithProblematicFailures.Count(x => x.IsBlame());
         
         var smallRoundsWithProblematicFailures = rounds.Values
             .Select(x => x.Round)
@@ -62,8 +94,8 @@ public class ApplicationCore
         var smallRoundsSucceed = smallRoundsWithProblematicFailures.Where(x => x.IsSuccess()).ToList();
         var smallRoundsNbInputs = smallRoundsSucceed.Average(x => x.GetInputsCount());
         var smallRoundsAvgAnonScore = smallRoundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
-        var smallRoundsAvgFreshSuccessRate = smallRoundsSucceed.Count(x => !x.IsBlame()) / smallRoundsWithProblematicFailures.Count(x => !x.IsBlame());
-        var smallRoundsAvgBlameSuccessRate = smallRoundsSucceed.Count(x => x.IsBlame()) / smallRoundsWithProblematicFailures.Count(x => x.IsBlame());
+        var smallRoundsAvgFreshSuccessRate = (double)smallRoundsSucceed.Count(x => !x.IsBlame()) / smallRoundsWithProblematicFailures.Count(x => !x.IsBlame());
+        var smallRoundsAvgBlameSuccessRate = (double)smallRoundsSucceed.Count(x => x.IsBlame()) / smallRoundsWithProblematicFailures.Count(x => x.IsBlame());
 
         Logger.LogInfo($"" +
                        $"bigRoundsNpInputs: {bigRoundsNpInputs}\n" +
