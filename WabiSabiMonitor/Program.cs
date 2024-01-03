@@ -120,7 +120,18 @@ public static class Program
 
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
-            .AddSingleton<ApplicationCore.ApplicationCore>();
+            .AddSingleton<ApplicationCore.ApplicationCore>(sp =>
+            {
+                var scraper = sp.GetRequiredService<Scraper>();
+                var dataReader = sp.GetRequiredService<IRoundDataReaderService>();
+                var rpcServerController = sp.GetRequiredService<IRpcServerController>();
+                var roundDataFilter = sp.GetRequiredService<IRoundsDataFilter>();
+                var analyzer = sp.GetRequiredService<IAnalyzer>();
+                var betterHumanMonitor = sp.GetRequiredService<IBetterHumanMonitor>();
+                var dataProcessor = sp.GetRequiredService<IRoundDataProcessor>();
+                return new ApplicationCore.ApplicationCore(scraper, dataReader, rpcServerController, roundDataFilter,
+                    analyzer, betterHumanMonitor, dataProcessor);
+            });
         
         services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
     }

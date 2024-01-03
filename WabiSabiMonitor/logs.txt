@@ -1,0 +1,1 @@
+2024-01-02 16:36:47.129 [8] INFO	Program.TerminateApplicationAsync (142)	Closing.

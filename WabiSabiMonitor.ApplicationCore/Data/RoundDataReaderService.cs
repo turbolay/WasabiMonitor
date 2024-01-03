@@ -10,7 +10,7 @@ namespace WabiSabiMonitor.ApplicationCore.Data;
 public class RoundDataReaderService : BackgroundService, IRoundDataReaderService
 {
     private readonly Scraper _scraper;
-    public Dictionary<uint256, ProcessedRound> Rounds { get; }
+    public Dictionary<uint256, ProcessedRound> Rounds { get; set; }
     public HumanMonitorResponse? LastHumanMonitor { get; private set; }
 
     public RoundDataReaderService(Dictionary<uint256, ProcessedRound> savedRounds, Scraper scraper)

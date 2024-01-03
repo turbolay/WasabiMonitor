@@ -66,10 +66,10 @@ public static class RoundStateExtensions
 
     // This function is special: It is the only one why we need human monitor:
     // it contains this extra info during InputsRegistrationPhase.
-    public static uint GetInputsCount(this RoundState roundState, IRoundDataReaderService roundDataReaderService)
+    public static uint GetInputsCount(this RoundState roundState, IRoundDataReaderService? roundDataReaderService = null)
     {
         uint count;
-        var hmInfosForRound = roundDataReaderService!.LastHumanMonitor!.RoundStates.FirstOrDefault(x => x.RoundId == roundState.Id);
+        var hmInfosForRound = roundDataReaderService?.LastHumanMonitor?.RoundStates.FirstOrDefault(x => x.RoundId == roundState.Id);
         
         if (hmInfosForRound is not null)
         {
