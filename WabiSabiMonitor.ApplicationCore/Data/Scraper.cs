@@ -26,7 +26,6 @@ public class Scraper : PeriodicRunner
     {
 
         var status = await _wabiSabiHttpApiClient!.GetStatusAsync(RoundStateRequest.Empty, token);
-        Logger.LogInfo($"Total received rounds state: {status.RoundStates.Length}");
 
         var humanMonitor = await _adapter.GetHumanMonitor(new(), CancellationToken.None);
         var publicStatus = new PublicStatus(DateTimeOffset.UtcNow, status, humanMonitor);

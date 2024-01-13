@@ -65,6 +65,38 @@ public class ApplicationCore
         await GetConfirmationTime(rounds.Where(x => x.Value.Round.IsSuccess()).Select(x => x.Key).ToList());
         
         // TODO: SAVE CONFIRMATION TIME
+        var allRoundsWithProblematicFailures = rounds.Values
+            .Select(x => x.Round)
+            .Where(x =>
+                x.EndRoundState != EndRoundState.None &&
+                x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
+            .ToList();
+        AnalyzeRounds(allRoundsWithProblematicFailures, "All rounds");
+        
+        
+        var smallRoundsWithProblematicFailures = rounds.Values
+            .Select(x => x.Round)
+            .Where(x =>
+                x.GetInputsCount() <= 200 &&
+                x.EndRoundState != EndRoundState.None &&
+                x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
+            .ToList();
+        AnalyzeRounds(smallRoundsWithProblematicFailures, "Rounds <= 200 inputs");
+        
+        var middleRoundsWithProblematicFailures = rounds.Values
+            .Select(x => x.Round)
+            .Where(x =>
+                x.GetInputsCount() > 200 && x.GetInputsCount() < 300 &&
+                x.EndRoundState != EndRoundState.None &&
+                x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
+            .ToList();
+        AnalyzeRounds(middleRoundsWithProblematicFailures, "Rounds > 200 inputs && < 300 inputs");
         
         var bigRoundsWithProblematicFailures = rounds.Values
             .Select(x => x.Round)
@@ -75,39 +107,36 @@ public class ApplicationCore
                 x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
                 x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
             .ToList();
-        var bigRoundsSucceed = bigRoundsWithProblematicFailures.Where(x => x.IsSuccess()).ToList();
-        
-        var bigRoundsNpInputs = bigRoundsSucceed.Average(x => x.GetInputsCount());
-        var bigRoundsAvgAnonScore = bigRoundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
-        var bigRoundsAvgFreshSuccessRate = (double)bigRoundsSucceed.Count(x => !x.IsBlame()) / bigRoundsWithProblematicFailures.Count(x => !x.IsBlame());
-        var bigRoundsAvgBlameSuccessRate = (double)bigRoundsSucceed.Count(x => x.IsBlame()) / bigRoundsWithProblematicFailures.Count(x => x.IsBlame());
-        
-        var smallRoundsWithProblematicFailures = rounds.Values
-            .Select(x => x.Round)
-            .Where(x =>
-                x.GetInputsCount() <= 180 &&
-                x.EndRoundState != EndRoundState.None &&
-                x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
-                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
-                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
-            .ToList();
-        var smallRoundsSucceed = smallRoundsWithProblematicFailures.Where(x => x.IsSuccess()).ToList();
-        var smallRoundsNbInputs = smallRoundsSucceed.Average(x => x.GetInputsCount());
-        var smallRoundsAvgAnonScore = smallRoundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
-        var smallRoundsAvgFreshSuccessRate = (double)smallRoundsSucceed.Count(x => !x.IsBlame()) / smallRoundsWithProblematicFailures.Count(x => !x.IsBlame());
-        var smallRoundsAvgBlameSuccessRate = (double)smallRoundsSucceed.Count(x => x.IsBlame()) / smallRoundsWithProblematicFailures.Count(x => x.IsBlame());
-
-        Logger.LogInfo($"" +
-                       $"bigRoundsNpInputs: {bigRoundsNpInputs}\n" +
-                       $"bigRoundsAvgAnonScore: {bigRoundsAvgAnonScore}\n" +
-                       $"bigRoundsAvgFreshSuccessRate: {bigRoundsAvgFreshSuccessRate}\n" +
-                       $"bigRoundsAvgBlameSuccessRate: {bigRoundsAvgBlameSuccessRate}\n" +
-                       $"\n" +
-                       $"smallRoundsNbInputs: {smallRoundsNbInputs}\n" +
-                       $"smallRoundsAvgAnonScore: {smallRoundsAvgAnonScore}\n" +
-                       $"smallRoundsAvgFreshSuccessRate: {smallRoundsAvgFreshSuccessRate}\n" +
-                       $"smallRoundsAvgBlameSuccessRate: {smallRoundsAvgBlameSuccessRate}");
+        AnalyzeRounds(bigRoundsWithProblematicFailures, "Rounds >= 300 inputs");
         
         await Task.Delay(-1, cancellationToken);
+    }
+
+    private void AnalyzeRounds(List<RoundState>? rounds, string message)
+    {
+        try
+        {
+
+            var roundsSucceed = rounds.Where(x => x.IsSuccess()).ToList();
+            var roundsNbInputs = roundsSucceed.Average(x => x.GetInputsCount());
+            var roundsAvgAnonScore = roundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
+            var roundsAvgFreshSuccessRate =
+                (double)roundsSucceed.Count(x => !x.IsBlame()) / rounds.Count(x => !x.IsBlame());
+            var roundsAvgBlameSuccessRate =
+                (double)roundsSucceed.Count(x => x.IsBlame()) / rounds.Count(x => x.IsBlame());
+
+            Logger.LogInfo($"{message} \n" +
+                           $"roundsSucceed: {roundsSucceed.Count}\n" +
+                           $"roundsNpInputs: {roundsNbInputs}\n" +
+                           $"roundsAvgAnonScore: {roundsAvgAnonScore}\n" +
+                           $"roundsAvgFreshSuccessRate: {roundsAvgFreshSuccessRate}\n" +
+                           $"roundsAvgBlameSuccessRate: {roundsAvgBlameSuccessRate}\n" +
+                           $"\n");
+        }
+        catch (Exception)
+        {
+            Logger.LogWarning($"{message} had no element");
+        }
+
     }
 }
