@@ -5,6 +5,7 @@ using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Logging;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
+using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models.MultipartyTransaction;
 
 namespace WabiSabiMonitor.ApplicationCore;
 
@@ -59,6 +60,32 @@ public class ApplicationCore
 
         var rounds = _dataReader.Rounds;
 
+        List<(Money PlannedFee, FeeRate PlannedFeeRate, Money ActualFee, FeeRate ActualFeeRate)> feeAnalysis = new();
+        
+        foreach (var round in rounds.Values.Where(x => x.Round.IsSuccess()).Select(x => x.Round))
+        {
+            var roundPlannedFeeRate = round
+                .CoinjoinState
+                .Events
+                .OfType<RoundCreated>()
+                .First()
+                .RoundParameters
+                .MiningFeeRate;
+
+            var roundEffectiveFeeRate = round.GetFeeRate();
+
+            feeAnalysis.Add((
+                PlannedFee: roundPlannedFeeRate.GetFee(round.GetEstimatedVSize()),
+                PlannedFeeRate: roundPlannedFeeRate,
+                ActualFee: round.GetFee(),
+                ActualFeeRate: round.GetFeeRate()));
+        }
+
+        Logger.LogInfo($"Avg planned fee rate: {feeAnalysis.Select(x => x.PlannedFeeRate).Average(x => x.SatoshiPerByte):0.##}");
+        Logger.LogInfo($"Percentage rounds fee rate changed: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Count(x => x > Money.Satoshis(1)) / (decimal)feeAnalysis.Count() * 100:0.##} %");
+        Logger.LogInfo($"Avg fee increased per round where fee changed: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Where(x => x > Money.Satoshis(1)).Average(x => x):0.##}");
+        Logger.LogInfo($"AVG FEE INCREASED PER ROUND: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Average(x => x):0.##}");
+        
         // TODO: RESTORE CONFIRMATION TIME
         
         // TODO: POPULATE MISSING CONFIRMATION TIME
