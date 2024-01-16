@@ -37,8 +37,8 @@ public static class RoundStateExtensions
 
     public static int GetEstimatedVSize(this RoundState roundState) => roundState.CoinjoinState.EstimatedVsize;
 
-    public static FeeRate GetFeeRate(this RoundState roundState) => roundState.IsSuccess() ? 
-        new FeeRate(GetFee(roundState), GetEstimatedVSize(roundState)) : 
+    public static FeeRate GetFeeRate(this RoundState roundState, int? realVSize = null) => roundState.IsSuccess() ? 
+        new FeeRate(GetFee(roundState), realVSize ?? GetEstimatedVSize(roundState)) : 
         FeeRate.Zero;
 
     public static Dictionary<Money, uint> GetInputsAnonSet(this RoundState roundState) => GetInputAmounts(roundState)
