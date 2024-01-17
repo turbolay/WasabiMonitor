@@ -81,10 +81,14 @@ public class ApplicationCore
                 ActualFee: round.GetFee(),
                 ActualFeeRate: round.GetFeeRate(txRealVSize)));
         }
+
+        var feeRateIncreasePerRound =
+            feeAnalysis.Select(x => x.ActualFeeRate.SatoshiPerByte - x.PlannedFeeRate.SatoshiPerByte).ToList();
+        
         Logger.LogInfo($"{feeAnalysis.Count()}");
         Logger.LogInfo($"Avg planned fee rate: {feeAnalysis.Select(x => x.PlannedFeeRate).Average(x => x.SatoshiPerByte):0.##}");
-        Logger.LogInfo($"Percentage rounds fee rate changed: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Count(x => x > Money.Satoshis(1)) / (decimal)feeAnalysis.Count() * 100:0.##} %");
-        Logger.LogInfo($"Avg fee increased per round where fee changed: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Where(x => x > Money.Satoshis(1)).Average(x => x):0.##}");
+        Logger.LogInfo($"Avg fee rate increase per round: {feeRateIncreasePerRound.Average(x => x):0.##}");
+        Logger.LogInfo($"Max fee rate increase per round: {feeRateIncreasePerRound.Max(x => x):0.##}");
         Logger.LogInfo($"AVG FEE INCREASED PER ROUND: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Average(x => x):0.##}");
         
         // TODO: RESTORE CONFIRMATION TIME
