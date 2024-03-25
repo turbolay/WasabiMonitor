@@ -185,7 +185,7 @@ public class ApplicationCore
 
             var roundsSucceed = rounds.Where(x => x.IsSuccess()).ToList();
             var roundsNbInputs = roundsSucceed.Average(x => x.GetInputsCount());
-            var roundsAvgAnonSet = roundsSuccaeed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
+            var roundsAvgAnonSet = roundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
             var roundsAvgFreshSuccessRate =
                 (double)roundsSucceed.Count(x => !x.IsBlame()) / rounds.Count(x => !x.IsBlame());
             var roundsAvgBlameSuccessRate =
