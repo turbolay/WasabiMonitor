@@ -59,37 +59,6 @@ public class ApplicationCore
         Logger.InitializeDefaults("./logs.txt");
 
         var rounds = _dataReader.Rounds;
-
-        List<(Money PlannedFee, FeeRate PlannedFeeRate, Money ActualFee, FeeRate ActualFeeRate)> feeAnalysis = new();
-        
-        foreach (var round in rounds.Values.Where(x => x.Round.IsSuccess()).Select(x => x.Round))
-        {
-            var roundPlannedFeeRate = round
-                .CoinjoinState
-                .Events
-                .OfType<RoundCreated>()
-                .First()
-                .RoundParameters
-                .MiningFeeRate;
-
-            var tx = ((SigningState)round.CoinjoinState).CreateTransaction();
-            var txRealVSize = tx.GetVirtualSize();
-            
-            feeAnalysis.Add((
-                PlannedFee: roundPlannedFeeRate.GetFee(txRealVSize),
-                PlannedFeeRate: roundPlannedFeeRate,
-                ActualFee: round.GetFee(),
-                ActualFeeRate: round.GetFeeRate(txRealVSize)));
-        }
-
-        var feeRateIncreasePerRound =
-            feeAnalysis.Select(x => x.ActualFeeRate.SatoshiPerByte - x.PlannedFeeRate.SatoshiPerByte).ToList();
-        
-        Logger.LogInfo($"{feeAnalysis.Count()}");
-        Logger.LogInfo($"Avg planned fee rate: {feeAnalysis.Select(x => x.PlannedFeeRate).Average(x => x.SatoshiPerByte):0.##}");
-        Logger.LogInfo($"Avg fee rate increase per round: {feeRateIncreasePerRound.Average(x => x):0.##}");
-        Logger.LogInfo($"Max fee rate increase per round: {feeRateIncreasePerRound.Max(x => x):0.##}");
-        Logger.LogInfo($"AVG FEE INCREASED PER ROUND: {feeAnalysis.Select(x => x.ActualFee - x.PlannedFee).Average(x => x):0.##}");
         
         // TODO: RESTORE CONFIRMATION TIME
         
@@ -102,7 +71,6 @@ public class ApplicationCore
             .Where(x =>
                 x.EndRoundState != EndRoundState.None &&
                 x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
-                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
                 x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
             .ToList();
         AnalyzeRounds(allRoundsWithProblematicFailures, "All rounds");
@@ -114,7 +82,6 @@ public class ApplicationCore
                 x.GetInputsCount() <= 200 &&
                 x.EndRoundState != EndRoundState.None &&
                 x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
-                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
                 x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
             .ToList();
         AnalyzeRounds(smallRoundsWithProblematicFailures, "Rounds <= 200 inputs");
@@ -125,7 +92,6 @@ public class ApplicationCore
                 x.GetInputsCount() > 200 && x.GetInputsCount() < 300 &&
                 x.EndRoundState != EndRoundState.None &&
                 x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
-                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
                 x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
             .ToList();
         AnalyzeRounds(middleRoundsWithProblematicFailures, "Rounds > 200 inputs && < 300 inputs");
@@ -136,22 +102,90 @@ public class ApplicationCore
                 x.GetInputsCount() >= 300 &&
                 x.EndRoundState != EndRoundState.None &&
                 x.EndRoundState != EndRoundState.AbortedLoadBalancing &&
-                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices &&
                 x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
             .ToList();
         AnalyzeRounds(bigRoundsWithProblematicFailures, "Rounds >= 300 inputs");
         
+        var roundDestroyedRoundsWithAbortedNotEnoughAlices = ExtractRoundsCreatedByRoundDestroyer(rounds)
+            .Where(x =>
+                x.EndRoundState != EndRoundState.None &&
+                x.EndRoundState != EndRoundState.AbortedLoadBalancing)
+            .ToList();
+
+        var roundDestroyerRoundsWithProblematicFailures =
+            roundDestroyedRoundsWithAbortedNotEnoughAlices.Where(x =>
+                x.EndRoundState != EndRoundState.AbortedNotEnoughAlices)
+                .ToList();
+        
+        Logger.LogInfo($"Round from round destroyer that didn't have enough inputs: {roundDestroyedRoundsWithAbortedNotEnoughAlices.Count - roundDestroyerRoundsWithProblematicFailures.Count}");
+
+        AnalyzeRounds(roundDestroyerRoundsWithProblematicFailures, "Rounds created by round destroyer");
         await Task.Delay(-1, cancellationToken);
     }
 
-    private void AnalyzeRounds(List<RoundState>? rounds, string message)
+    private List<RoundState> ExtractRoundsCreatedByRoundDestroyer(
+        Dictionary<uint256, RoundDataReaderService.ProcessedRound> rounds)
+    {
+        // The idea here is to select the fresh rounds that have been created within 2 minutes
+        // These have necessarily have been created by the RoundDestroyer.
+
+        var freshRounds = rounds.Values
+            .Select(x => x.Round)
+            .Where(x => !x.IsBlame())
+            .ToList();
+        
+        HashSet<RoundState> result = new();
+
+        for (var i = 0; i < freshRounds.Count - 1; i++)
+        { 
+            var timeDifference = (freshRounds[i].InputRegistrationStart - freshRounds[i+1].InputRegistrationStart).Duration();
+
+            if (timeDifference.TotalMinutes >= 2)
+            {
+                // Not a round created by round destroyer because the next one wasn't created right after
+                continue;
+            }
+            
+            result.Add(freshRounds[i]);
+            result.Add(freshRounds[i+1]);
+        }
+
+        var destroyedRoundDestroyed = result.Count(x => x.EndRoundState == EndRoundState.AbortedLoadBalancing);
+        Logger.LogInfo($"Round destroyed: {freshRounds.Count(x => x.EndRoundState == EndRoundState.AbortedLoadBalancing) - destroyedRoundDestroyed}");
+        Logger.LogInfo($"Round from round destroyer that were destroyed again: {destroyedRoundDestroyed}");
+        
+        // Then we have to add the successive blame rounds to it.
+        Queue<uint256> toSearchBlame = new();
+        
+        foreach (var id in result.Select(x => x.Id))
+        {
+            toSearchBlame.Enqueue(id);
+        }
+        
+        while(toSearchBlame.Count > 0)
+        {
+            var currentId = toSearchBlame.Dequeue();
+            var blameRoundFromCurrentId = rounds.Values.FirstOrDefault(x => x.Round.BlameOf.Equals(currentId));
+
+            if (blameRoundFromCurrentId is null)
+            {
+                continue;
+            }
+            
+            toSearchBlame.Enqueue(blameRoundFromCurrentId.Round.Id);
+            result.Add(blameRoundFromCurrentId.Round);
+        }
+
+        return result.ToList();
+    }
+    private void AnalyzeRounds(List<RoundState> rounds, string message)
     {
         try
         {
 
             var roundsSucceed = rounds.Where(x => x.IsSuccess()).ToList();
             var roundsNbInputs = roundsSucceed.Average(x => x.GetInputsCount());
-            var roundsAvgAnonScore = roundsSucceed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
+            var roundsAvgAnonSet = roundsSuccaeed.Average(y => y.GetOutputsAnonSet().Average(x => x.Value));
             var roundsAvgFreshSuccessRate =
                 (double)roundsSucceed.Count(x => !x.IsBlame()) / rounds.Count(x => !x.IsBlame());
             var roundsAvgBlameSuccessRate =
@@ -160,7 +194,7 @@ public class ApplicationCore
             Logger.LogInfo($"{message} \n" +
                            $"roundsSucceed: {roundsSucceed.Count}\n" +
                            $"roundsNpInputs: {roundsNbInputs}\n" +
-                           $"roundsAvgAnonScore: {roundsAvgAnonScore}\n" +
+                           $"roundsAvgAnonSet: {roundsAvgAnonSet}\n" +
                            $"roundsAvgFreshSuccessRate: {roundsAvgFreshSuccessRate}\n" +
                            $"roundsAvgBlameSuccessRate: {roundsAvgBlameSuccessRate}\n" +
                            $"\n");

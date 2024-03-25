@@ -141,7 +141,7 @@ public static class Program
     {
         Logger.LogInfo("Closing.");
 
-        fileProcessedRoundRepository.SaveToFileSystem(roundDataReaderService.Rounds);
+        //fileProcessedRoundRepository.SaveToFileSystem(roundDataReaderService.Rounds);
 
         jsonRpcServer.Dispose();
 
