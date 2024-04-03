@@ -16,6 +16,7 @@ using WabiSabiMonitor.ApplicationCore.Utils.Services.Terminate;
 using WabiSabiMonitor.ApplicationCore.Utils.Tor.Http;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.PostRequests;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Client;
+
 // ReSharper disable InconsistentlySynchronizedField
 
 namespace WabiSabiMonitor;
@@ -69,16 +70,15 @@ public static class Program
         services.AddSingleton<IRoundDataProcessor, RoundDataProcessor>()
             .AddSingleton<IRoundsDataFilter, RoundsDataFilter>()
             .AddSingleton<IAnalyzer, Analyzer>()
-            .AddSingleton<IWabiSabiApiRequestHandlerAdapter, WabiSabiApiRequestHandlerAdapter>()
             .AddSingleton<IBetterHumanMonitor, BetterHumanMonitor>()
             .AddSingleton<Scraper>()
             .AddSingleton<PersistentConfig>()
             .AddSingleton<IRoundDataReaderService, RoundDataReaderService>(sp =>
             {
                 var fileProcessedRoundRepository = sp.GetRequiredService<IProcessedRoundRepository>();
-                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ?? 
+                var roundsInfo = fileProcessedRoundRepository.ReadFromFileSystem() ??
                                  new Dictionary<uint256, RoundDataReaderService.ProcessedRound>();
-                return new RoundDataReaderService(roundsInfo,  sp.GetRequiredService<Scraper>());
+                return new RoundDataReaderService(roundsInfo, sp.GetRequiredService<Scraper>());
             })
             .AddSingleton(config)
             .AddSingleton(jsonRpcServerConfig)
@@ -121,7 +121,7 @@ public static class Program
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
             .AddSingleton<ApplicationCore.ApplicationCore>();
-        
+
         services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
     }
 
