@@ -482,3 +482,6 @@ FodyWeavers.xsd
 
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
+/WabiSabiMonitor/obj/Debug/net7.0/WabiSabiMonitor.AssemblyInfo.cs
+/WabiSabiMonitor/obj/Debug/net7.0/WabiSabiMonitor.GeneratedMSBuildEditorConfig.editorconfig
+/WabiSabiMonitor/logs.txt
