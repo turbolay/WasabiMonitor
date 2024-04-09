@@ -24,19 +24,15 @@ public class Analyzer : IAnalyzer
             return null;
         }
 
-        var interval = GetInterval(roundStates);
-        var intervalDuration = (interval.End - interval.Start);
+        var (Start, End) = GetInterval(roundStates);
+        var intervalDuration = (End - Start);
+
+        decimal averageFeeRate = 0;
+        decimal nbOutputPerInput = 0;
+        AnonSetAnalysisPerRound inputAnonSetAnalysis = new();
+        AnonSetAnalysisPerRound outputAnonSetAnalysis = new();
+
         var successes = roundStates.Where(x => x.IsSuccess()).ToList();
-
-        var inputsPerHour = CalculateInputsPerHour(successes, intervalDuration);
-        var btcPerHour = CalculateBtcPerHour(successes, intervalDuration);
-        var blameRoundsPerHour = CalculateBlameRoundsPerHour(roundStates, intervalDuration);
-        var averageFeeRate = CalculateAverageFeeRate(successes);
-        var nbOutputPerInput = CalculateNbOutputPerInput(successes);
-        var endRoundStatePercent = CalculateEndRoundStatePercent(roundStates);
-
-        double estimatedNbOfBanPerHour =
-            roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
 
         var inputsAnonSet = new Dictionary<decimal, uint>();
         var outputsAnonSet = new Dictionary<decimal, uint>();
@@ -44,9 +40,24 @@ public class Analyzer : IAnalyzer
         InitInputAnonSet(successes, inputsAnonSet);
         InitOutputAnonSet(successes, outputsAnonSet);
 
+        if (successes.Count != 0)
+        {
+            averageFeeRate = CalculateAverageFeeRate(successes);
+            nbOutputPerInput = CalculateNbOutputPerInput(successes);
+            inputAnonSetAnalysis = CalculateAnonSetAnalysis(inputsAnonSet);
+            outputAnonSetAnalysis = CalculateAnonSetAnalysis(outputsAnonSet);
+        }
+        var inputsPerHour = CalculateInputsPerHour(successes, intervalDuration);
+        var btcPerHour = CalculateBtcPerHour(successes, intervalDuration);
+        var blameRoundsPerHour = CalculateBlameRoundsPerHour(roundStates, intervalDuration);
+        var endRoundStatePercent = CalculateEndRoundStatePercent(roundStates);
+
+        double estimatedNbOfBanPerHour =
+            roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
+
         return new Analysis(
-            interval.Start,
-            interval.End,
+            Start,
+            End,
             inputsPerHour,
             btcPerHour,
             blameRoundsPerHour,
@@ -54,8 +65,9 @@ public class Analyzer : IAnalyzer
             averageFeeRate,
             nbOutputPerInput,
             endRoundStatePercent,
-            CalculateAnonSetAnalysis(inputsAnonSet),
-            CalculateAnonSetAnalysis(outputsAnonSet));
+            inputAnonSetAnalysis,
+            outputAnonSetAnalysis
+            );
     }
 
     private AnonSetAnalysisPerRound CalculateAnonSetAnalysis(Dictionary<decimal, uint> anonSet)
@@ -159,7 +171,12 @@ public class Analyzer : IAnalyzer
     }
 
     public record AnonSetAnalysisPerRound(decimal MedianWithoutChange, decimal FirstQuartileWithoutChange,
-        decimal NbChange, Dictionary<decimal, uint> Top);
+        decimal NbChange, Dictionary<decimal, uint> Top)
+    {
+        public AnonSetAnalysisPerRound() : this(0, 0, 0, new Dictionary<decimal, uint>())
+        {
+        }
+    }
 
     public record Analysis(DateTimeOffset StartTime,
         DateTimeOffset EndTime,
