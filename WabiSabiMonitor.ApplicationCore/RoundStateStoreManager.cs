@@ -32,6 +32,8 @@ namespace WabiSabiMonitor.ApplicationCore
 
                 // Get rounds that happened today.
                 var roundsToday = allRounds.Where(x => x.Value.LastUpdate.Date == date).ToList();
+
+                // Add leftovers from yesterday.
                 roundsToday.AddRange(savedForNextDay);
                 savedForNextDay.Clear();
 
