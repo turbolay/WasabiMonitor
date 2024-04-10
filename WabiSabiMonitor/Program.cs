@@ -32,9 +32,11 @@ public static class Program
 
         var host = CreateHostBuilder(args).Build();
         var applicationCore = host.Services.GetRequiredService<ApplicationCore.ApplicationCore>();
+        var roundStateStoreManager = host.Services.GetRequiredService<RoundStateStoreManager>();
 
         try
         {
+            await roundStateStoreManager.StartAsync(CancellationTokenSource.Token);
             await applicationCore.Run(CancellationTokenSource.Token);
         }
         catch (Exception ex)
@@ -119,6 +121,10 @@ public static class Program
                 var jsonRpcServerConfiguration = sp.GetRequiredService<JsonRpcServerConfiguration>();
 
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
+            })
+            .AddSingleton<RoundStateStoreManager>(sp =>
+            {
+                return new RoundStateStoreManager(sp.GetRequiredService<IRoundDataReaderService>());
             })
             .AddSingleton<ApplicationCore.ApplicationCore>();
 
