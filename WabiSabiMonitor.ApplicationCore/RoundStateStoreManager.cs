@@ -1,15 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using NBitcoin;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WabiSabiMonitor.ApplicationCore.Data;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
-using WabiSabiMonitor.ApplicationCore.Utils.Bases;
 using WabiSabiMonitor.ApplicationCore.Utils.Helpers;
 using WabiSabiMonitor.ApplicationCore.Utils.Logging;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
