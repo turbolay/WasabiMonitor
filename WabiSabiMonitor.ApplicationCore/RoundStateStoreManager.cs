@@ -28,22 +28,26 @@ namespace WabiSabiMonitor.ApplicationCore
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            List<KeyValuePair<uint256, RoundDataReaderService.ProcessedRound>> savedForNextDay = new();
             while (!stoppingToken.IsCancellationRequested)
             {
                 var date = DateTime.Now.Date;
-                var s = date.ToString("yyyy-MM-dd");
                 await WaitUntilMidnightAsync(stoppingToken);
                 Logger.LogInfo("It's midnight. Writing Daily Round States...");
 
                 Dictionary<uint256, RoundDataReaderService.ProcessedRound> allRounds = _roundDataReaderService.Rounds;
-                var roundsToday = allRounds.Where(x => x.Value.LastUpdate.Date == date).ToArray();
 
-                // Save finished rounds
-                var finishedRounds = roundsToday.Where(x => x.Value.Round.EndRoundState != EndRoundState.None).ToArray();
+                // Get rounds that happened today.
+                var roundsToday = allRounds.Where(x => x.Value.LastUpdate.Date == date).ToList();
+                roundsToday.AddRange(savedForNextDay);
+                savedForNextDay.Clear();
+
+                // Save finished rounds.
+                var finishedRounds = roundsToday.Where(x => x.Value.Round.EndRoundState != EndRoundState.None);
 
                 // If a BlameRound is still active, don't save its BlameOf.
                 var stillActiveBlameRoundsBlameOfIds = roundsToday.Where(x => x.Value.Round.EndRoundState == EndRoundState.None && x.Value.Round.IsBlame())
-                    .Select(x => x.Value.Round.BlameOf).ToArray();
+                    .Select(x => x.Value.Round.BlameOf);
 
                 var dataToWrite = finishedRounds.Where(round =>
                 {
@@ -51,13 +55,14 @@ namespace WabiSabiMonitor.ApplicationCore
                     if (isBlameOf)
                     {
                         Logger.LogInfo($"Excluded Round {round.Key}, is BlameOf.");
+                        savedForNextDay.Add(round);
                     }
 
                     return !isBlameOf;
-                }).ToArray();
+                });
 
                 var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), $"RoundStates_{date:yyyy-MM-dd}.json");
-                File.WriteAllText(path, JsonConvert.SerializeObject(dataToWrite, JsonSerializationOptions.CurrentSettings));
+                await File.WriteAllTextAsync(path, JsonConvert.SerializeObject(dataToWrite, JsonSerializationOptions.CurrentSettings), stoppingToken);
             }
         }
 
