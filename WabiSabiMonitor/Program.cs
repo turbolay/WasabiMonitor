@@ -120,6 +120,7 @@ public static class Program
 
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
+            .AddSingleton<RoundStateStoreManager>()
             .AddSingleton<ApplicationCore.ApplicationCore>();
 
         services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
