@@ -3,6 +3,7 @@ using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Extensions;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
+using Xunit.Sdk;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;
 
@@ -24,8 +25,13 @@ public class Analyzer : IAnalyzer
             return null;
         }
 
+        roundStates = new List<RoundState> { roundStates.First() };
         var (Start, End) = GetInterval(roundStates);
         var intervalDuration = (End - Start);
+        if (intervalDuration == TimeSpan.Zero)
+        {
+            intervalDuration = new TimeSpan(1, 0, 0);
+        }
 
         decimal averageFeeRate = 0;
         decimal nbOutputPerInput = 0;
