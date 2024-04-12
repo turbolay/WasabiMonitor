@@ -10,13 +10,15 @@ public class ApplicationCore
     private readonly IRoundDataReaderService _dataProcessor;
     private readonly IRpcServerController _rpcServerController;
     private readonly AnalysisStoreManager _analysisStoreManager;
+    private readonly RoundStateStoreManager _roundStateStoreManager;
 
     public ApplicationCore(Scraper roundStatusScraper, IRoundDataReaderService dataProcessor,
-        IRpcServerController rpcServerController, AnalysisStoreManager analysisStoreManager)
+        IRpcServerController rpcServerController, RoundStateStoreManager roundStateStoreManager, AnalysisStoreManager analysisStoreManager)
     {
         _roundStatusScraper = roundStatusScraper;
         _dataProcessor = dataProcessor;
         _rpcServerController = rpcServerController;
+        _roundStateStoreManager = roundStateStoreManager;
         _analysisStoreManager = analysisStoreManager;
     }
 
@@ -31,6 +33,8 @@ public class ApplicationCore
         await _roundStatusScraper.ToBeProcessedData.Reader.WaitToReadAsync(cancellationToken);
         Logger.LogInfo("Start round data reader service...");
         await _dataProcessor.StartAsync(cancellationToken);
+        Logger.LogInfo("Start round data saver...");
+        await _roundStateStoreManager.StartAsync(cancellationToken);
         Logger.LogInfo("Start analysis data saver...");
         await _analysisStoreManager.StartAsync(cancellationToken);
         Logger.LogInfo("Start rpc server controller...");

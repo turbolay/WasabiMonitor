@@ -121,6 +121,7 @@ public static class Program
                 return new RpcServerController(jsonRpcServer, jsonRpcServerConfiguration);
             })
             .AddSingleton<AnalysisStoreManager>(sp => new AnalysisStoreManager(sp.GetRequiredService<IAnalyzer>(), sp.GetRequiredService<IRoundsDataFilter>(), TimeSpan.FromMinutes(10)))
+            .AddSingleton<RoundStateStoreManager>()
             .AddSingleton<ApplicationCore.ApplicationCore>();
 
         services.RemoveAll<IHttpMessageHandlerBuilderFilter>();
