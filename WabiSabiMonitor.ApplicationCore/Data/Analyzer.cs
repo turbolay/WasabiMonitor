@@ -25,7 +25,6 @@ public class Analyzer : IAnalyzer
             return null;
         }
 
-        roundStates = new List<RoundState> { roundStates.First() };
         var (Start, End) = GetInterval(roundStates);
         var intervalDuration = (End - Start);
         if (intervalDuration == TimeSpan.Zero)
