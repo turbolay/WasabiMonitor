@@ -28,6 +28,7 @@ public static class Program
 
     public static async Task Main(string[] args)
     {
+        Logger.InitializeDefaults("./logs.txt");
         HandleClosure();
 
         var host = CreateHostBuilder(args).Build();
