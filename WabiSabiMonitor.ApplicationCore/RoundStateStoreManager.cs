@@ -55,7 +55,7 @@ namespace WabiSabiMonitor.ApplicationCore
                     return !isBlameOf;
                 }).ToArray();
 
-                var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), $"RoundStates_{date:yyyy-MM-dd}.json");
+                var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "DataStore", "RoundState", "Client")), $"RoundStates_{date:yyyy-MM-dd}.json");
                 await File.WriteAllTextAsync(path, JsonConvert.SerializeObject(dataToWrite, JsonSerializationOptions.CurrentSettings), stoppingToken);
             }
         }

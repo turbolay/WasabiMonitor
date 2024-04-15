@@ -20,7 +20,7 @@ namespace WabiSabiMonitor.ApplicationCore
         protected override async Task ActionAsync(CancellationToken cancel)
         {
             var date = DateTime.Now.Date;
-            var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), $"Analysis_{date:yyyy-MM-dd}.json");
+            var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "DataStore", "Analysis", "Client")), $"Analysis_{date:yyyy-MM-dd}.json");
 
             var roundStates = _roundsDataFilter.GetRoundsStartedSince(date);
             var analysis = _analyzer.AnalyzeRoundStates(roundStates);
