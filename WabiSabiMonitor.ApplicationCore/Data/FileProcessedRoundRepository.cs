@@ -1,6 +1,7 @@
 using NBitcoin;
 using Newtonsoft.Json;
 using WabiSabiMonitor.ApplicationCore.Interfaces;
+using WabiSabiMonitor.ApplicationCore.Utils.Logging;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models.Serialization;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;
@@ -24,6 +25,7 @@ public class FileProcessedRoundRepository : IProcessedRoundRepository
     {
         try
         {
+            Logger.LogInfo("Reading RoundStates from file...");
             return JsonConvert.DeserializeObject<Dictionary<uint256, RoundDataReaderService.ProcessedRound>>(
                 File.ReadAllText(_path), JsonSerializationOptions.CurrentSettings);
         }
