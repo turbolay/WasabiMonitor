@@ -24,8 +24,8 @@ public class Analyzer : IAnalyzer
             return null;
         }
 
-        var (Start, End) = GetInterval(roundStates);
-        var intervalDuration = (End - Start);
+        var (start, end) = GetInterval(roundStates);
+        var intervalDuration = end - start;
 
         decimal averageFeeRate = 0;
         decimal nbOutputPerInput = 0;
@@ -56,8 +56,8 @@ public class Analyzer : IAnalyzer
             roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
 
         return new Analysis(
-            Start,
-            End,
+            start,
+            end,
             inputsPerHour,
             btcPerHour,
             blameRoundsPerHour,

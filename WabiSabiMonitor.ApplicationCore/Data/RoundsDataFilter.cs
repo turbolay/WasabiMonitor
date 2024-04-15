@@ -16,13 +16,19 @@ public class RoundsDataFilter : IRoundsDataFilter
         _roundDataReaderService = roundDataReaderService;
     }
 
-    public List<RoundState> GetRoundsInInterval(DateTimeOffset? start, DateTimeOffset? end, Func<RoundState, bool>? predicate = null) =>
-        _roundDataProcessor.GetRounds(x =>
-            (start == default || x.InputRegistrationStart.DateTime >= start) &&
-            (end == default || x.InputRegistrationStart.DateTime <= end) && (predicate?.Invoke(x) ?? true));
+    public List<RoundState> GetRoundsFinishedInInterval(DateTimeOffset? start, DateTimeOffset? end,
+        Func<RoundState, bool>? predicate = null) =>
+        _roundDataProcessor.GetRounds(
+                x => !x.IsOngoing() && (predicate?.Invoke(x) ?? true),
+            x => (start is null || x.LastUpdate >= start) && (end is null || x.LastUpdate < end));
 
+    // The rounds with EndRoundState.None are filtered to only keep the ones that started less than 2h ago or since initialization.
+    // This is to avoid false positives when we quit the app for long time.
+    // A full fix would be to discard those rounds from the database.
     public List<RoundState> GetCurrentRounds() =>
-        _roundDataProcessor.GetRounds(x => x.EndRoundState == EndRoundState.None);
+        _roundDataProcessor.GetRounds(x => (x.InputRegistrationStart > DateTimeOffset.UtcNow.Subtract(TimeSpan.FromHours(2)) ||
+                                           x.InputRegistrationStart > ApplicationCore.LastInit)
+                                           && x.EndRoundState == EndRoundState.None);
 
     public List<RoundState> GetRoundsStartedSince(DateTimeOffset since, Func<RoundState, bool>? predicate = null) =>
         _roundDataProcessor.GetRounds(x => x.InputRegistrationStart >= since && (predicate?.Invoke(x) ?? true));

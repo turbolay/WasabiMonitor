@@ -23,8 +23,11 @@ public class BetterHumanMonitor : IBetterHumanMonitor
         _roundDataReaderService = roundDataReaderService;
     }
 
-    public BetterHumanMonitorModel GetApiResponse(DateTimeOffset? start = null, DateTimeOffset? end = null)
+    public BetterHumanMonitorModel GetApiResponse(TimeSpan? durationNullable = null)
     {
+        var duration = durationNullable ?? TimeSpan.FromHours(12);
+        DateTimeOffset start = DateTimeOffset.UtcNow - duration;
+        
         var result = BetterHumanMonitorModel.Empty();
 
         BetterHumanMonitorRound CreateBetterHumanMonitorRound(RoundState round)
@@ -54,16 +57,13 @@ public class BetterHumanMonitor : IBetterHumanMonitor
                 currentFeesConditions);
         }
 
-        var allRoundsInInterval = _roundDataFilter.GetRoundsInInterval(start, end);
-
         var currentRounds = _roundDataFilter.GetCurrentRounds();
         foreach (var current in currentRounds)
         {
             result.CurrentRounds.Add(CreateBetterHumanMonitorRound(current));
         }
-
-        var lastPeriodRounds = allRoundsInInterval.Where(x => !currentRounds.Select(y => y.Id).Contains(x.Id)).ToList();
-
+        
+        var lastPeriodRounds = _roundDataFilter.GetRoundsFinishedInInterval(start, null);
         foreach (var lastPeriodRound in lastPeriodRounds)
         {
             result.LastPeriod.Add(CreateBetterHumanMonitorRound(lastPeriodRound));

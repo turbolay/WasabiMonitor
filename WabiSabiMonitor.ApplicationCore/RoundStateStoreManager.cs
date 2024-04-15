@@ -25,44 +25,48 @@ namespace WabiSabiMonitor.ApplicationCore
             List<RoundState> savedForNextDay = new();
             while (!stoppingToken.IsCancellationRequested)
             {
-                var date = DateTime.Now.Date;
+                var date = DateTime.UtcNow.Date;
                 await WaitUntilMidnightAsync(stoppingToken);
                 Logger.LogInfo("It's midnight. Writing Daily Round States...");
 
                 // Get rounds that happened today.
-                var roundsToday = _roundsDataFilter.GetRoundsInInterval(date, date.AddDays(1)).ToList();
+                var roundsToday = _roundsDataFilter.GetRoundsFinishedInInterval(date, date.AddDays(1)).ToList();
 
                 // Add leftovers from yesterday.
                 roundsToday.AddRange(savedForNextDay);
                 savedForNextDay.Clear();
 
-                // Save finished rounds.
-                var finishedRounds = _roundsDataFilter.GetRoundsFinishedSince(date).ToArray();
-
-                // If a BlameRound is still active, don't save its BlameOf.
-                var stillActiveBlameRoundsBlameOfIds = roundsToday.Where(x => x.EndRoundState == EndRoundState.None && x.IsBlame())
-                    .Select(x => x.BlameOf).ToArray();
-
-                var dataToWrite = finishedRounds.Where(round =>
+                // If a BlameRound is still active, don't save the chain of blame
+                var stillActiveBlameRoundsBlameOfIds = new List<uint256>();
+                foreach (var onGoingRound in _roundsDataFilter.GetCurrentRounds())
                 {
-                    bool isBlameOf = stillActiveBlameRoundsBlameOfIds.Contains(round.Id);
-                    if (isBlameOf)
+                    var currentRound = onGoingRound;
+                    while (currentRound.IsBlame())
                     {
-                        Logger.LogInfo($"Excluded Round {round.Id}, is BlameOf.");
-                        savedForNextDay.Add(round);
+                        var blameOf = roundsToday.FirstOrDefault(x => x.Id == currentRound.Id);
+                        if (blameOf is null) break;
+                        stillActiveBlameRoundsBlameOfIds.Add(currentRound.Id);
+                        currentRound = blameOf;
                     }
+                }
 
-                    return !isBlameOf;
+                var dataToWrite = roundsToday.Where(round =>
+                {
+                    var isBlameOf = stillActiveBlameRoundsBlameOfIds.Contains(round.Id);
+                    if (!isBlameOf) return true;
+                    Logger.LogDebug($"Excluded Round {round.Id}, because its chain of Blame is still active.");
+                    savedForNextDay.Add(round);
+                    return false;
                 }).ToArray();
 
-                var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "Client")), $"RoundStates_{date:yyyy-MM-dd}.json");
+                var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "DataStore", "RoundState")), $"RoundStates_{date:yyyy-MM-dd}.json");
                 await File.WriteAllTextAsync(path, JsonConvert.SerializeObject(dataToWrite, JsonSerializationOptions.CurrentSettings), stoppingToken);
             }
         }
 
         private async Task WaitUntilMidnightAsync(CancellationToken stoppingToken)
         {
-            var now = DateTime.Now.TimeOfDay;
+            var now = DateTime.UtcNow.TimeOfDay;
             TimeSpan midnight = new(0, 0, 0);
 
             if (now > midnight)
