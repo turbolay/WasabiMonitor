@@ -17,14 +17,15 @@ public class Analyzer : IAnalyzer
         _roundsDataFilter = roundsDataFilter;
     }
 
-    public Analysis? AnalyzeRoundStates(List<RoundState> roundStates, TimeSpan intervalDuration)
+    public Analysis? AnalyzeRoundStates(List<RoundState> roundStates)
     {
         if (!roundStates.Any())
         {
             return null;
         }
 
-        var (Start, End) = GetInterval(roundStates);
+        var (start, end) = GetInterval(roundStates);
+        var intervalDuration = end - start;
 
         decimal averageFeeRate = 0;
         decimal nbOutputPerInput = 0;
@@ -55,8 +56,8 @@ public class Analyzer : IAnalyzer
             roundStates.Sum(x => _roundsDataFilter.GetNbBanEstimation(x)) / intervalDuration.TotalHours;
 
         return new Analysis(
-            Start,
-            End,
+            start,
+            end,
             inputsPerHour,
             btcPerHour,
             blameRoundsPerHour,
