@@ -22,8 +22,6 @@ public class ApplicationCore
 
     public async Task Run(CancellationToken cancellationToken)
     {
-        Logger.InitializeDefaults("./logs.txt");
-
         Logger.LogInfo("Starting scraper...");
         await _roundStatusScraper.StartAsync(cancellationToken);
         await _roundStatusScraper.TriggerAndWaitRoundAsync(cancellationToken);
