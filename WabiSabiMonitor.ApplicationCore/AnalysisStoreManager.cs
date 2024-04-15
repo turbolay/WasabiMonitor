@@ -18,6 +18,7 @@ namespace WabiSabiMonitor.ApplicationCore
         {
             _analyzer = analyzer;
             _roundsDataFilter = roundsDataFilter;
+            _lastDate = DateTime.Now;
             Analysis = new();
         }
 
