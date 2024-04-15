@@ -5,5 +5,5 @@ namespace WabiSabiMonitor.ApplicationCore.Interfaces;
 
 public interface IAnalyzer
 {
-    Analyzer.Analysis? AnalyzeRoundStates(List<RoundState> roundStates);
+    Analyzer.Analysis? AnalyzeRoundStates(List<RoundState> roundStates, TimeSpan interval = default);
 }

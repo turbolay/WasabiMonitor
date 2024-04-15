@@ -17,7 +17,7 @@ public class Analyzer : IAnalyzer
         _roundsDataFilter = roundsDataFilter;
     }
 
-    public Analysis? AnalyzeRoundStates(List<RoundState> roundStates)
+    public Analysis? AnalyzeRoundStates(List<RoundState> roundStates, TimeSpan intervalDuration)
     {
         if (!roundStates.Any())
         {
@@ -25,11 +25,6 @@ public class Analyzer : IAnalyzer
         }
 
         var (Start, End) = GetInterval(roundStates);
-        var intervalDuration = (End - Start);
-        if (intervalDuration == TimeSpan.Zero)
-        {
-            intervalDuration = new TimeSpan(1, 0, 0);
-        }
 
         decimal averageFeeRate = 0;
         decimal nbOutputPerInput = 0;
