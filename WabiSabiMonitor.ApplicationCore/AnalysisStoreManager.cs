@@ -37,7 +37,7 @@ namespace WabiSabiMonitor.ApplicationCore
             if (now.Date != _lastDate.Date)
             {
                 // Save the last 24 hours data to file at the end of the day.
-                var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "DataStore", "Analysis", "Client")), $"Analysis_{now:yyyy-MM-dd}.json");
+                var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "DataStore", "Analysis")), $"Analysis_{_lastDate:yyyy-MM-dd}.json");
                 await File.WriteAllTextAsync(path, JsonConvert.SerializeObject(analysis, JsonSerializationOptions.CurrentSettings), cancel);
 
                 // Remove data older than 15 days.
