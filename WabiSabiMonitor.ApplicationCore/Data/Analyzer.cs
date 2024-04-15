@@ -3,7 +3,6 @@ using WabiSabiMonitor.ApplicationCore.Interfaces;
 using WabiSabiMonitor.ApplicationCore.Utils.Extensions;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Backend.Rounds;
 using WabiSabiMonitor.ApplicationCore.Utils.WabiSabi.Models;
-using Xunit.Sdk;
 
 namespace WabiSabiMonitor.ApplicationCore.Data;
 
