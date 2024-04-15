@@ -41,7 +41,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
             startDateTime = DateTime.UtcNow - TimeSpan.FromHours(12);
         }
 
-        return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime));
+        return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime), endDateTime - startDateTime);
     }
 
     [JsonRpcMethod("get-rounds")]
@@ -67,7 +67,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
         {
             throw new ArgumentException($"Couldn't parse end time: {endTime}. Suggested formats: {string.Join(", ", formats)}");
         }
-        
+
         return (startDateTime, endDateTime);
     }
 }
