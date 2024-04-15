@@ -18,13 +18,13 @@ namespace WabiSabiMonitor.ApplicationCore
         {
             _analyzer = analyzer;
             _roundsDataFilter = roundsDataFilter;
-            _lastDate = DateTime.Now;
+            _lastDate = DateTime.UtcNow;
             Analysis = new();
         }
 
         protected override async Task ActionAsync(CancellationToken cancel)
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             TimeSpan startTime = TimeSpan.FromHours(24);
 
             var roundStates = _roundsDataFilter.GetRoundsStartedSince(startTime);

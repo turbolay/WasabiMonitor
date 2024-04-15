@@ -25,7 +25,7 @@ namespace WabiSabiMonitor.ApplicationCore
             List<RoundState> savedForNextDay = new();
             while (!stoppingToken.IsCancellationRequested)
             {
-                var date = DateTime.Now.Date;
+                var date = DateTime.UtcNow.Date;
                 await WaitUntilMidnightAsync(stoppingToken);
                 Logger.LogInfo("It's midnight. Writing Daily Round States...");
 
@@ -62,7 +62,7 @@ namespace WabiSabiMonitor.ApplicationCore
 
         private async Task WaitUntilMidnightAsync(CancellationToken stoppingToken)
         {
-            var now = DateTime.Now.TimeOfDay;
+            var now = DateTime.UtcNow.TimeOfDay;
             TimeSpan midnight = new(0, 0, 0);
 
             if (now > midnight)
