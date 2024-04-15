@@ -57,16 +57,13 @@ public class BetterHumanMonitor : IBetterHumanMonitor
                 currentFeesConditions);
         }
 
-        var allRoundsInInterval = _roundDataFilter.GetRoundsInInterval(start, null);
-
         var currentRounds = _roundDataFilter.GetCurrentRounds();
         foreach (var current in currentRounds)
         {
             result.CurrentRounds.Add(CreateBetterHumanMonitorRound(current));
         }
-
-        var lastPeriodRounds = allRoundsInInterval.Where(x => !currentRounds.Select(y => y.Id).Contains(x.Id)).ToList();
-
+        
+        var lastPeriodRounds = _roundDataFilter.GetRoundsFinishedInInterval(start, null);
         foreach (var lastPeriodRound in lastPeriodRounds)
         {
             result.LastPeriod.Add(CreateBetterHumanMonitorRound(lastPeriodRound));

@@ -6,6 +6,8 @@ namespace WabiSabiMonitor.ApplicationCore;
 
 public class ApplicationCore
 {
+    public static DateTime LastInit { get; } = DateTime.UtcNow;
+    
     private readonly Scraper _roundStatusScraper;
     private readonly IRoundDataReaderService _dataProcessor;
     private readonly IRpcServerController _rpcServerController;

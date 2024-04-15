@@ -21,14 +21,6 @@ public class WabiSabiMonitorRpc : IJsonRpcService
         _betterHumanMonitor = betterHumanMonitor;
     }
 
-    [JsonRpcMethod("echo")]
-    public string HelloWorld()
-    {
-        var message = "Hello world!";
-        Logger.LogInfo(message);
-        return message;
-    }
-
     [JsonRpcMethod("better-human-monitor")]
     public BetterHumanMonitorModel GetBetterHumanMonitor() => _betterHumanMonitor.GetApiResponse();
 
@@ -41,16 +33,9 @@ public class WabiSabiMonitorRpc : IJsonRpcService
             startDateTime = DateTime.UtcNow - TimeSpan.FromHours(12);
         }
 
-        return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime));
+        return _analyzer.AnalyzeRoundStates(_filter.GetRoundsFinishedInInterval(startDateTime, endDateTime));
     }
-
-    [JsonRpcMethod("get-rounds")]
-    public List<RoundState> GetRounds(string? startTime = null, string? endTime = null)
-    {
-        var (startDateTime, endDateTime) = ParseInterval(startTime, endTime);
-        return _filter.GetRoundsInInterval(startDateTime, endDateTime);
-    }
-
+    
     private static (DateTime, DateTime) ParseInterval(string? startTime, string? endTime)
     {
         DateTime startDateTime = default;
