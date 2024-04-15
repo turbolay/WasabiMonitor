@@ -4,5 +4,5 @@ namespace WabiSabiMonitor.ApplicationCore.Interfaces;
 
 public interface IBetterHumanMonitor
 {
-    BetterHumanMonitorModel GetApiResponse(DateTimeOffset? start = null, DateTimeOffset? end = null);
+    BetterHumanMonitorModel GetApiResponse(TimeSpan? duration = null);
 }

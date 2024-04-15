@@ -28,7 +28,7 @@ namespace WabiSabiMonitor.ApplicationCore
             TimeSpan startTime = TimeSpan.FromHours(24);
 
             var roundStates = _roundsDataFilter.GetRoundsStartedSince(startTime);
-            var analysis = _analyzer.AnalyzeRoundStates(roundStates, startTime);
+            var analysis = _analyzer.AnalyzeRoundStates(roundStates);
             if (analysis is null)
             {
                 return;

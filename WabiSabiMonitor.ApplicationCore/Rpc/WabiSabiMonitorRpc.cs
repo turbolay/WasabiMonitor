@@ -41,7 +41,7 @@ public class WabiSabiMonitorRpc : IJsonRpcService
             startDateTime = DateTime.UtcNow - TimeSpan.FromHours(12);
         }
 
-        return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime), endDateTime - startDateTime);
+        return _analyzer.AnalyzeRoundStates(_filter.GetRoundsInInterval(startDateTime, endDateTime));
     }
 
     [JsonRpcMethod("get-rounds")]
