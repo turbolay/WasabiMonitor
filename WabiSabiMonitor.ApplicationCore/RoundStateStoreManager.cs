@@ -43,9 +43,9 @@ namespace WabiSabiMonitor.ApplicationCore
                     var currentRound = onGoingRound;
                     while (currentRound.IsBlame())
                     {
-                        var blameOf = roundsToday.FirstOrDefault(x => x.Id == currentRound.Id);
+                        var blameOf = roundsToday.FirstOrDefault(x => x.Id == currentRound.BlameOf);
                         if (blameOf is null) break;
-                        stillActiveBlameRoundsBlameOfIds.Add(currentRound.Id);
+                        stillActiveBlameRoundsBlameOfIds.Add(blameOf.Id);
                         currentRound = blameOf;
                     }
                 }
