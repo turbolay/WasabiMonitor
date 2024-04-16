@@ -12,7 +12,7 @@ namespace WabiSabiMonitor.ApplicationCore
         private readonly IAnalyzer _analyzer;
         private readonly IRoundsDataFilter _roundsDataFilter;
         private DateTime _lastDate;
-        private Dictionary<DateTime, Analyzer.Analysis> Analysis { get;} = new();
+        private Dictionary<DateTime, Analyzer.Analysis> Analysis { get; } = new();
 
         public AnalysisStoreManager(IAnalyzer analyzer, IRoundsDataFilter roundsDataFilter, TimeSpan period) : base(period)
         {
@@ -24,10 +24,10 @@ namespace WabiSabiMonitor.ApplicationCore
         protected override async Task ActionAsync(CancellationToken cancel)
         {
             var now = DateTime.UtcNow;
-            TimeSpan startTime = TimeSpan.FromHours(24);
+            DateTime startTime = now.Subtract(TimeSpan.FromHours(24));
 
             // Analysis over a rolling 24h.
-            var roundStates = _roundsDataFilter.GetRoundsFinishedSince(now.Subtract(startTime));
+            var roundStates = _roundsDataFilter.GetRoundsFinishedSince(startTime);
             var analysis = _analyzer.AnalyzeRoundStates(roundStates);
             if (analysis is null)
             {
@@ -39,10 +39,10 @@ namespace WabiSabiMonitor.ApplicationCore
             {
                 // Save the last 24 hours data to file at the end of the day.
                 var path = Path.Combine(EnvironmentHelpers.GetDataDir(Path.Combine("WabiSabiMonitor", "DataStore", "Analysis")), $"Analysis_{_lastDate:yyyy-MM-dd}.json");
-                
+
                 // Compute a new Analysis object for these ones to have exactly the adequate rounds.
-                var lastDayRounds = _roundsDataFilter.GetRoundsFinishedInInterval(now.Subtract(startTime), now.Date);
-               
+                var lastDayRounds = _roundsDataFilter.GetRoundsFinishedInInterval(startTime, now.Date);
+
                 await File.WriteAllTextAsync(path, JsonConvert.SerializeObject(_analyzer.AnalyzeRoundStates(lastDayRounds), JsonSerializationOptions.CurrentSettings), cancel);
 
                 // Remove data older than 15 days.
