@@ -14,7 +14,7 @@ namespace WabiSabiMonitor.ApplicationCore
         private readonly IAnalyzer _analyzer;
         private readonly IRoundsDataFilter _roundsDataFilter;
         private DateTime _lastDate;
-        private Dictionary<DateTime, Analysis> Analysis { get; set; }
+        private Dictionary<DateTime, Analysis> Analysis { get; }
 
         public AnalysisStoreManager(IAnalyzer analyzer, IRoundsDataFilter roundsDataFilter, TimeSpan period) : base(period)
         {
